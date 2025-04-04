@@ -1,0 +1,9 @@
+{
+    "cmake.sourceDirectory": "C:/Users/marti/source/multiproj/ARBOT/arbot_motor_cmd",
+    "idf.customExtraVars": {
+        "IDF_TARGET": "esp32s3"
+    },
+    "idf.openOcdConfigs": [
+        "board/esp32s3-builtin.cfg"
+    ]
+}
