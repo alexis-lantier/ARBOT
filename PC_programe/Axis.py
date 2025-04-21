@@ -6,6 +6,6 @@ class Axis:
         self._motor = Motor()
         self._height = 0
 
-    def move(self, height):
-        self._motor.move(height)
-        self._height = height
+    def move(self, height_increment ):
+        self._motor.move(height_increment)
+        self._height += height_increment

@@ -20,6 +20,15 @@ class Plate:
     def MoveAxisPhi(self, angle):
         # changer la valeur des moteurs
         # envoyer l'information à la carte de faire bouger
+
+
+        # INCRéMENT ANGLE --> INCRéEMENT HAUTEUR DE CHAQUE AXIS --> INCRéEMENT HAUTEUR MOTEUR(FONNCTION FAITES) 
+        # TRANSIMITION ANGLE AU MOTTEURS.
+
+        
+
+
+
         pass
 
     def MoveAxisTheta(self, angle):
