@@ -12,7 +12,7 @@ class Application:
     def Regulation(self):
         pass
 
-    def Afficher_menu(A, B, C):
+    def Afficher_menu(self, A, B, C):
         print("\n=== MENU MANUEL ===")
         print(f"Axe A : {A}")
         print(f"Axe B : {B}")
@@ -28,31 +28,31 @@ class Application:
         print(">")
 
 
-def Test(self):
+    def Test(self):
 
-    while True:
-        
-        self.Afficher_menu(x, y, z)
-        choix = input("Ton choix : ")
+        while True:
 
-        if choix == "1":
-            x += 1
-        elif choix == "2":
-            x -= 1
-        elif choix == "3":
-            y += 1
-        elif choix == "4":
-            y -= 1
-        elif choix == "5":
-            z += 1
-        elif choix == "6":
-            z -= 1
-        elif choix == "7":
-            print("Fermeture du menu. À bientôt !")
-            break
-        else:
-            print("Choix invalide, réessaie.")
+            self.Afficher_menu(
+                A=self._machine.GetAnglePhi(),
+                B=self._machine.GetAngleTheta(),
+                C=self._machine.GetHeight(),
+            )
+            choix = input("Ton choix : ")
 
-# Lancer le menu
-if __name__ == "__main__":
-    menu_axes()
+            if choix == "1":
+                self._machine.MoveAxisPhi(self._machine.GetAnglePhi() + 1)
+            elif choix == "2":
+                self._machine.MoveAxisTheta(self._machine.GetAngleTheta() + 1)
+            elif choix == "3":
+                self._machine.MoveAxisHeigh(self._machine.GetHeight() + 1)
+            elif choix == "4":
+                self._machine.MoveAxisPhi(self._machine.GetAnglePhi() - 1)
+            elif choix == "5":
+                self._machine.MoveAxisTheta(self._machine.GetAngleTheta() - 1)
+            elif choix == "6":
+                self._machine.MoveAxisHeigh(self._machine.GetHeight() - 1)
+            elif choix == "7":
+                print("Fermeture du menu. À bientôt !")
+                break
+            else:
+                print("Choix invalide, réessaie.")
