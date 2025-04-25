@@ -7,5 +7,5 @@ class Axis:
         self._height = 0
 
     def move(self, hCible):
-        self._motor.move(hCible)
+        self._motor.SetAngle(hCible)
         self._height = hCible

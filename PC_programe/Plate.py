@@ -31,8 +31,8 @@ class Plate:
     def CalculateHeightBasedOnAngle(self,phi_val,theta_val):
         z, H2, d1, d2, phi, theta = symbols('z H2 d1 d2 phi theta')
         offset = 0 # Adjust this value as needed
-        d1_val = 225 + offset        
-        d2_val = 259,8 + 2 * offset            
+        d1_val = 0.225 + offset        # j'ai mit la valeur en m
+        d2_val = 0.2598 + 2 * offset            
         z_val = self._height
 
         equation = Eq(z, H2 + d1 * sin(0.5 * asin(d2 / d1 * sin(2 * phi + asin(H2 / d2))) + 0.5 * asin(H2 / d1) + theta) + d2 * sin(2 * phi + asin(H2 / d2)))
@@ -54,6 +54,8 @@ class Plate:
         0.5 * asin(h2 / d1_val) + theta_val
         )
         h1 = d2_val * sin(2 *phi_val + asin(h2 / d2_val))
+
+        print(f"Calculated heights: h1={h1}, h2={h2}, h3={h3}") # h2 est un nombre complexe ... à corriger
 
         return h1, h2, h3
     

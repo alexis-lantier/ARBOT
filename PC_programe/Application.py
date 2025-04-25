@@ -40,17 +40,17 @@ class Application:
             choix = input("Ton choix : ")
 
             if choix == "1":
-                self._machine.MoveAxisPhi(self._machine.GetAnglePhi() + 1)
+                self._machine._plate.MoveAxisPhi(self._machine.GetAnglePhi() + 1)
             elif choix == "2":
-                self._machine.MoveAxisTheta(self._machine.GetAngleTheta() + 1)
+                self._machine._plate.MoveAxisTheta(self._machine.GetAngleTheta() + 1)
             elif choix == "3":
-                self._machine.MoveAxisHeigh(self._machine.GetHeight() + 1)
+                self._machine._plate.MoveAxisHeigh(self._machine.GetHeight() + 1)
             elif choix == "4":
-                self._machine.MoveAxisPhi(self._machine.GetAnglePhi() - 1)
+                self._machine._plate.MoveAxisPhi(self._machine.GetAnglePhi() - 1)
             elif choix == "5":
-                self._machine.MoveAxisTheta(self._machine.GetAngleTheta() - 1)
+                self._machine._plate.MoveAxisTheta(self._machine.GetAngleTheta() - 1)
             elif choix == "6":
-                self._machine.MoveAxisHeigh(self._machine.GetHeight() - 1)
+                self._machine._plate.MoveAxisHeigh(self._machine.GetHeight() - 1)
             elif choix == "7":
                 print("Fermeture du menu. À bientôt !")
                 break
