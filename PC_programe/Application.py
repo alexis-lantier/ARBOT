@@ -14,9 +14,9 @@ class Application:
 
     def Afficher_menu(self, A, B, C):
         print("\n=== MENU MANUEL ===")
-        print(f"Axe A : {A}")
-        print(f"Axe B : {B}")
-        print(f"Axe C : {C}")
+        print(f"Axe PHI : {A}")
+        print(f"Axe TETA : {B}")
+        print(f"Axe Z : {C}")
         print("\nChoisis une action :")
         print("1. + PHI")
         print("2. + THETA")

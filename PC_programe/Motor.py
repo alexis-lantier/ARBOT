@@ -3,8 +3,7 @@ import numpy as np
 
 class Motor:
     def __init__(self):
-        self._angle = 0
-        self._lastAngleMovement = 0
+        self._angle = -45
         
     def SetAngle(self, hCible):
         if not isinstance(hCible, (int, float)):
@@ -30,7 +29,6 @@ class Motor:
                 break
 
         # Calculer le mouvement de l'angle
-        self._lastAngleMovement = new_angle - self._angle
         self._angle = new_angle
 
 
