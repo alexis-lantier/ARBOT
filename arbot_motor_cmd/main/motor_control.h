@@ -5,16 +5,16 @@
 #include <stdbool.h>
 
 // Définition des broches des moteurs
-#define MOTOR1_STEP_PIN GPIO_NUM_18
-#define MOTOR1_DIR_PIN  GPIO_NUM_19
+#define MOTOR1_STEP_PIN GPIO_NUM_42
+#define MOTOR1_DIR_PIN  GPIO_NUM_2
 
-#define MOTOR2_STEP_PIN GPIO_NUM_21
-#define MOTOR2_DIR_PIN  GPIO_NUM_26
+#define MOTOR2_STEP_PIN GPIO_NUM_40
+#define MOTOR2_DIR_PIN  GPIO_NUM_41
 
-#define MOTOR3_STEP_PIN GPIO_NUM_27
-#define MOTOR3_DIR_PIN  GPIO_NUM_28
+#define MOTOR3_STEP_PIN GPIO_NUM_38
+#define MOTOR3_DIR_PIN  GPIO_NUM_39
 
-#define ENABLE_PIN GPIO_NUM_2 // Broche pour activer/désactiver les moteurs
+#define ENABLE_PIN GPIO_NUM_37
 
 #define STEP_DELAY_US 1000  // Délai entre chaque pas en microsecondes
 #define STEPS_PER_DEGREE 10 // Nombre de pas par degré
