@@ -8,24 +8,20 @@ class Machine:
 
     def __init__(self):
         
-        self.Ball = Ball(cam=Cam(connectionCam=ConnectionCam())) 
-        self.Plate = Plate()
+        self._ball = Ball(cam=Cam(connectionCam=ConnectionCam())) 
+        self._plate = Plate()
         
     def GetAnglePhi(self):
-        # 3 inconues 
-        # 3 equations
-        #  1. Angle Theta
-        #  2. Angle Phi
-        #  3. Height constante
-        pass
+        # Get the angle phi from the Ball object
+        return self._plate.GetAnglePhi()
 
     def GetAngleTheta(self):
         
-        pass
+        return self._plate.GetAngleTheta()
 
     def GetHeight(self):
         
-        pass
+        return self._plate.GetHeight()
 
     def RegulationCenter(self):
         pass
