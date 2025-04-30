@@ -20,8 +20,8 @@
 #define TRAME_SIZE          (5)             // Taille de la trame attendue
 
 // Configuration des temps (modifiable via des #define)
-#define UART_READ_TIMEOUT_MS (10)   // Timeout pour la lecture UART en millisecondes
-#define MOTOR_TASK_DELAY_MS  (100)  // Délai pour la tâche moteur en millisecondes
+#define UART_READ_TIMEOUT_MS (2)   // Timeout pour la lecture UART en millisecondes
+#define MOTOR_TASK_DELAY_MS  (30)  // Délai pour la tâche moteur en millisecondes
 
 // Configuration de FreeRTOS
 #define TASK_STACK_SIZE    (2048)   // Taille de la pile pour la tâche
@@ -131,18 +131,38 @@ static void uart_task(void *arg)
 void motor_task(void *arg)
 {
     motor_angles_t angles;
-
     while (1) {
-        // Attendre les angles dans la file
+        // Attend une commande d'angles
         if (xQueueReceive(angle_queue, &angles, portMAX_DELAY) == pdPASS) {
-            printf("Angles reçus : %d, %d, %d\n", angles.angle1, angles.angle2, angles.angle3);
+            // Conversion des angles en pas
+            int steps1 = angle_to_steps((float)angles.angle1);
+            int steps2 = angle_to_steps((float)angles.angle2);
+            int steps3 = angle_to_steps((float)angles.angle3);
 
-            // Déplacer les moteurs vers les angles reçus
-            sync_move_all_to(angles);
+            // Mouvement synchronisé des 3 moteurs
+            int targets[3] = { steps1, steps2, steps3 };
+            for (int i = 0; i < 3; ++i) {
+                motors[i].target = targets[i];
+                motors[i].dir = (motors[i].target > motors[i].position);
+                gpio_set_level(motors[i].dirPin, motors[i].dir ? 0 : 1);
+            }
+
+            // Calcul du nombre total de pas à effectuer
+            int totalSteps = 0;
+            for (int i = 0; i < 3; ++i) {
+                int steps = abs(motors[i].target - motors[i].position);
+                if (steps > totalSteps) totalSteps = steps;
+            }
+
+            // Boucle de mouvement synchronisé
+            for (int step = 0; step < totalSteps; ++step) {
+                for (int i = 0; i < 3; ++i) {
+                    if (motor_is_moving(&motors[i])) motor_tick(&motors[i]);
+                }
+                esp_rom_delay_us(get_ramp_delay(step, totalSteps));
+            }
         }
-
-        // Délai pour éviter une surcharge inutile
-        vTaskDelay(pdMS_TO_TICKS(MOTOR_TASK_DELAY_MS));
+        vTaskDelay(MOTOR_TASK_DELAY_MS / portTICK_PERIOD_MS);
     }
 }
 
@@ -155,9 +175,6 @@ void app_main(void)
         return;
     }
 
-    // Initialisation des moteurs
-    motor_init();
-
     // Initialisation de l'UART
     uart_config_t uart_config = {
         .baud_rate = 115200,
@@ -169,6 +186,10 @@ void app_main(void)
     ESP_ERROR_CHECK(uart_param_config(UART_NUM, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(UART_PORT_NUM, UART_TX, UART_RX, UART_RTS, UART_CTS));
     ESP_ERROR_CHECK(uart_driver_install(UART_NUM, BUFFER_SIZE * 2, 0, 0, NULL, 0));
+
+    // Initialisation des moteurs
+    motors_init();
+    motors_begin();
 
     // Création des tâches
     xTaskCreate(uart_task, "uart_task", TASK_STACK_SIZE, NULL, 10, NULL);

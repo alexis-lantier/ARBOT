@@ -1,115 +1,130 @@
 #include "motor_control.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include <math.h>
 
-// Fonction pour initialiser les moteurs
-void motor_init(void) {
-    gpio_set_direction(MOTOR1_STEP_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_direction(MOTOR1_DIR_PIN, GPIO_MODE_OUTPUT);
+#define MOTOR_COUNT 3
 
-    gpio_set_direction(MOTOR2_STEP_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_direction(MOTOR2_DIR_PIN, GPIO_MODE_OUTPUT);
+StepperMotor motors[MOTOR_COUNT];
 
-    gpio_set_direction(MOTOR3_STEP_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_direction(MOTOR3_DIR_PIN, GPIO_MODE_OUTPUT);
+static const gpio_num_t step_pins[MOTOR_COUNT] = {
+    MOTOR1_STEP_PIN, MOTOR2_STEP_PIN, MOTOR3_STEP_PIN
+};
+static const gpio_num_t dir_pins[MOTOR_COUNT] = {
+    MOTOR1_DIR_PIN, MOTOR2_DIR_PIN, MOTOR3_DIR_PIN
+};
 
+void motors_init(void) {
+    for (int i = 0; i < MOTOR_COUNT; ++i) {
+        motors[i].stepPin = step_pins[i];
+        motors[i].dirPin = dir_pins[i];
+        motors[i].position = 0;
+        motors[i].target = 0;
+        motors[i].dir = true;
+    }
+}
+
+void motors_begin(void) {
+    for (int i = 0; i < MOTOR_COUNT; ++i) {
+        gpio_set_direction(motors[i].stepPin, GPIO_MODE_OUTPUT);
+        gpio_set_direction(motors[i].dirPin, GPIO_MODE_OUTPUT);
+    }
+
+    // Enabling the drivers
     gpio_set_direction(ENABLE_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_level(ENABLE_PIN, 0); // Activer les moteurs
+    gpio_set_level(ENABLE_PIN, 0); // Active drivers
 }
 
-// Fonction pour déplacer un moteur
-void move_motor(int step_pin, int dir_pin, int steps, bool direction) {
-    gpio_set_level(dir_pin, direction ? 1 : 0); // Définir la direction
-
-    for (int i = 0; i < steps; i++) {
-        gpio_set_level(step_pin, 1);
-        vTaskDelay(pdMS_TO_TICKS(STEP_DELAY_US / 1000)); // Convertir microsecondes en millisecondes
-        gpio_set_level(step_pin, 0);
-        vTaskDelay(pdMS_TO_TICKS(STEP_DELAY_US / 1000));
+void motors_prepare_move_to(int target) {
+    for (int i = 0; i < MOTOR_COUNT; ++i) {
+        motors[i].target = target;
+        motors[i].dir = (motors[i].target > motors[i].position);
+        gpio_set_level(motors[i].dirPin, motors[i].dir ? 0 : 1);
     }
 }
 
-// Fonction pour calculer le délai de rampe
-static int get_ramp_delay(int step_index, int total_steps) {
-    if (step_index < RAMP_STEPS) {
-        return STEP_DELAY_US + (STEP_DELAY_US * (RAMP_STEPS - step_index)) / RAMP_STEPS;
-    } else if (step_index > total_steps - RAMP_STEPS) {
-        return STEP_DELAY_US + (STEP_DELAY_US * (step_index - (total_steps - RAMP_STEPS))) / RAMP_STEPS;
-    }
-    return STEP_DELAY_US;
+bool motor_tick(StepperMotor* motor) {
+    if (motor->position == motor->target) return false;
+    gpio_set_level(motor->stepPin, 1);
+    esp_rom_delay_us(2);
+    gpio_set_level(motor->stepPin, 0);
+    esp_rom_delay_us(2);
+    motor->position += motor->dir ? 1 : -1;
+    return true;
 }
 
-// Fonction pour déplacer tous les moteurs en synchronisation
-void sync_move_all_to(motor_angles_t angles) {
-    // Conversion des angles en pas
-    int motor1_steps = angles.angle1 * STEPS_PER_DEGREE;
-    int motor2_steps = angles.angle2 * STEPS_PER_DEGREE;
-    int motor3_steps = angles.angle3 * STEPS_PER_DEGREE;
+bool motor_is_moving(StepperMotor* motor) {
+    return motor->position != motor->target;
+}
 
-    // Déterminer la direction pour chaque moteur
-    int motor1_dir = (motor1_steps >= 0) ? 1 : 0;
-    int motor2_dir = (motor2_steps >= 0) ? 1 : 0;
-    int motor3_dir = (motor3_steps >= 0) ? 1 : 0;
+int angle_to_steps(float angle) {
+    return (int)roundf(angle / STEP_ANGLE);
+}
 
-    // Configurer la direction des moteurs
-    gpio_set_level(MOTOR1_DIR_PIN, motor1_dir);
-    gpio_set_level(MOTOR2_DIR_PIN, motor2_dir);
-    gpio_set_level(MOTOR3_DIR_PIN, motor3_dir);
+int get_ramp_delay(int stepIndex, int totalSteps) {
+    if (stepIndex < STEP_RAMP)
+        return STEP_DELAY_MAX_US - (STEP_DELAY_MAX_US - STEP_DELAY_MIN_US) * stepIndex / STEP_RAMP;
+    else if (stepIndex > totalSteps - STEP_RAMP)
+        return STEP_DELAY_MAX_US - (STEP_DELAY_MAX_US - STEP_DELAY_MIN_US) * (totalSteps - stepIndex) / STEP_RAMP;
+    return STEP_DELAY_MIN_US;
+}
 
-    // Prendre la valeur absolue des pas
-    motor1_steps = abs(motor1_steps);
-    motor2_steps = abs(motor2_steps);
-    motor3_steps = abs(motor3_steps);
+void sync_move_all_to(int target) {
+    motors_prepare_move_to(target);
 
-    // Calculer le nombre total de pas nécessaires
-    int total_steps = (int)fmax(fmax(motor1_steps, motor2_steps), motor3_steps);
+    int totalSteps = 0;
+    for (int i = 0; i < MOTOR_COUNT; ++i) {
+        int steps = abs(motors[i].target - motors[i].position);
+        if (steps > totalSteps) totalSteps = steps;
+    }
 
-    // Variables pour synchroniser les moteurs
-    int motor1_accumulator = 0;
-    int motor2_accumulator = 0;
-    int motor3_accumulator = 0;
-
-    for (int step = 0; step < total_steps; step++) {
-        // Déplacer le moteur 1 si nécessaire
-        if (motor1_accumulator < motor1_steps && (motor1_accumulator * total_steps) / motor1_steps <= step) {
-            gpio_set_level(MOTOR1_STEP_PIN, 1);
-            motor1_accumulator++;
+    for (int step = 0; step < totalSteps; ++step) {
+        for (int i = 0; i < MOTOR_COUNT; ++i) {
+            if (motor_is_moving(&motors[i])) motor_tick(&motors[i]);
         }
-
-        // Déplacer le moteur 2 si nécessaire
-        if (motor2_accumulator < motor2_steps && (motor2_accumulator * total_steps) / motor2_steps <= step) {
-            gpio_set_level(MOTOR2_STEP_PIN, 1);
-            motor2_accumulator++;
-        }
-
-        // Déplacer le moteur 3 si nécessaire
-        if (motor3_accumulator < motor3_steps && (motor3_accumulator * total_steps) / motor3_steps <= step) {
-            gpio_set_level(MOTOR3_STEP_PIN, 1);
-            motor3_accumulator++;
-        }
-
-        // Petite impulsion pour les moteurs
-        vTaskDelay(pdMS_TO_TICKS(1));
-
-        // Réinitialiser les broches STEP
-        gpio_set_level(MOTOR1_STEP_PIN, 0);
-        gpio_set_level(MOTOR2_STEP_PIN, 0);
-        gpio_set_level(MOTOR3_STEP_PIN, 0);
-
-        // Délai pour gérer la rampe
-        vTaskDelay(pdMS_TO_TICKS(get_ramp_delay(step, total_steps) / 1000));
+        esp_rom_delay_us(get_ramp_delay(step, totalSteps));
     }
 }
 
-// Fonction pour déplacer un moteur avec une rampe
-void ramped_move(int step_pin, int dir_pin, int target_steps, bool direction) {
-    gpio_set_level(dir_pin, direction ? 1 : 0); // Définir la direction
-
-    for (int step = 0; step < target_steps; step++) {
-        gpio_set_level(step_pin, 1);
-        vTaskDelay(pdMS_TO_TICKS(1)); 
-        gpio_set_level(step_pin, 0);
-        vTaskDelay(pdMS_TO_TICKS(get_ramp_delay(step, target_steps) / 1000)); // Convertir microsecondes en ticks
+void ramped_move(StepperMotor* motor, int target) {
+    motor->target = target;
+    motor->dir = (motor->target > motor->position);
+    gpio_set_level(motor->dirPin, motor->dir ? 1 : 0);
+    int totalSteps = abs(motor->target - motor->position);
+    for (int step = 0; step < totalSteps; ++step) {
+        motor_tick(motor);
+        esp_rom_delay_us(get_ramp_delay(step, totalSteps));
     }
+}
+
+void motor_control_demo_sequence(void) {
+    gpio_set_direction(ENABLE_PIN, GPIO_MODE_OUTPUT);
+    gpio_set_level(ENABLE_PIN, 0); // Active drivers
+
+    motors_init();
+    motors_begin();
+
+    int steps45 = angle_to_steps(45.0f);
+    int steps90 = angle_to_steps(90.0f);
+
+    sync_move_all_to(steps45); vTaskDelay(pdMS_TO_TICKS(500));
+    for (int i = 0; i < MOTOR_COUNT; ++i) ramped_move(&motors[i], steps90);
+    for (int i = 0; i < MOTOR_COUNT; ++i) ramped_move(&motors[i], steps45);
+    for (int i = 0; i < MOTOR_COUNT; ++i) ramped_move(&motors[i], steps90);
+    for (int i = 0; i < MOTOR_COUNT; ++i) ramped_move(&motors[i], steps45);
+    for (int i = 0; i < MOTOR_COUNT; ++i) ramped_move(&motors[i], steps90);
+
+    vTaskDelay(pdMS_TO_TICKS(500));
+    sync_move_all_to(steps45); vTaskDelay(pdMS_TO_TICKS(500));
+    sync_move_all_to(0); vTaskDelay(pdMS_TO_TICKS(500));
+
+    for (int i = 0; i < MOTOR_COUNT; ++i) { ramped_move(&motors[i], steps45); vTaskDelay(pdMS_TO_TICKS(200)); }
+    for (int i = 0; i < MOTOR_COUNT; ++i) { ramped_move(&motors[i], steps90); vTaskDelay(pdMS_TO_TICKS(200)); }
+
+    sync_move_all_to(steps45); vTaskDelay(pdMS_TO_TICKS(500));
+    sync_move_all_to(steps90); vTaskDelay(pdMS_TO_TICKS(75));
+    sync_move_all_to(steps45); vTaskDelay(pdMS_TO_TICKS(75));
+    sync_move_all_to(steps90); vTaskDelay(pdMS_TO_TICKS(75));
+    sync_move_all_to(steps45); vTaskDelay(pdMS_TO_TICKS(75));
+    sync_move_all_to(steps90); vTaskDelay(pdMS_TO_TICKS(100));
+    sync_move_all_to(0); vTaskDelay(pdMS_TO_TICKS(500));
+
+    gpio_set_level(ENABLE_PIN, 1); // Désactive drivers
 }
