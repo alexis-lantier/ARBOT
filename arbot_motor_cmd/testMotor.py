@@ -22,7 +22,6 @@ def send_angles(angle1, angle2, angle3):
     checksum = to_uint8((MOTMAGIC + a1 + a2 + a3) % 256)
     ser.write(checksum.to_bytes(1, 'big'))
     print(f"Envoyé: {[hex(MOTMAGIC), hex(angle1), hex(angle2), hex(angle3), hex(checksum)]}")
-    time.sleep(0.1)
 
 # Fonction pour vérifier le checksum
 def verify_checksum(frame):
@@ -55,16 +54,33 @@ except serial.SerialException as e:
     print(f"Erreur de connexion série : {e}")
     exit()
 
-time.sleep(2)
+time.sleep(0.1)
 
 # Envoyer des angles de test
 try:
     ser.reset_input_buffer()
     ser.reset_output_buffer()
-    time.sleep(1)
+    time.sleep(0.1)
 
-    send_angles(1, 2, 3)  # Position initiale
+    # Commence un chrono
+    """start_time = time.time()
+    send_angles(40, 40, 40)  # Position initiale
     read_response()
+
+    # terminer le chrono
+    elapsed_time = time.time() - start_time
+
+    print(f"Temps écoulé pour la première trame : {elapsed_time:.3f} secondes")"""
+    
+    # Boucle de 5 qui bouuge le moteur de 0 à 45° et de 45° à 0°
+    for i in range(10):
+        send_angles(40, 40, 40)  # Position à 45°
+        read_response()
+        time.sleep(0.2)
+        send_angles(-40, -40, -40)  # Retour à la position initiale
+        read_response()
+        time.sleep(0.2)
+
 except serial.SerialException as e:
     print(f"Erreur série : {e}")
 except Exception as e:
