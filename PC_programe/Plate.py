@@ -1,4 +1,4 @@
-from Connection_Motor import ConnectionMotor
+from Connection_To_Microcontroller import ConnectionToMicrocontroller
 from Axis import Axis
 
 import numpy as np
@@ -13,7 +13,7 @@ class Plate:
         self._anglePhi = -45
         self._angleTheta = -45
         self._height = 50.9
-        self._ConnectionMotor = ConnectionMotor()
+        self._connectionToMicrocontroller = ConnectionToMicrocontroller()
         self._axisA = Axis()
         self._axisB = Axis()
         self._axisC = Axis()
@@ -47,7 +47,7 @@ class Plate:
         # Update the height
 
         self._height = height
-        self._ConnectionMotor.SendMovement(
+        self._connectionToMicrocontroller.SendMovement(
             self._axisA._motor.getAngle(),
             self._axisB._motor.getAngle(),
             self._axisC._motor.getAngle(),
@@ -123,7 +123,7 @@ class Plate:
         self._anglePhi = angle
         self._height = (h1 + h2 + h3) / 3
 
-        self._ConnectionMotor.SendMovement(
+        self._connectionToMicrocontroller.SendMovement(
             self._axisA._motor.getAngle(),
             self._axisB._motor.getAngle(),
             self._axisC._motor.getAngle(),
@@ -145,7 +145,7 @@ class Plate:
         self._angleTheta = angle
         self._height = (h1 + h2 + h3) / 3
 
-        self._ConnectionMotor.SendMovement(
+        self._connectionToMicrocontroller.SendMovement(
             self._axisA._motor.getAngle(),
             self._axisB._motor.getAngle(),
             self._axisC._motor.getAngle(),
