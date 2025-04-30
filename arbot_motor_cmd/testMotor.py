@@ -1,7 +1,7 @@
 import time
 import serial
 
-MOTMAGIC = 0xAA  # Motmagic pour le protocole de communication
+MOTMAGIC = 0x96          # Motmagic pour le protocole de communication
 ERROR_FRAME_TYPE = 0xE1  # Type de trame pour les erreurs
 VALID_FRAME_TYPE = 0xA1  # Type de trame pour confirmation OK
 

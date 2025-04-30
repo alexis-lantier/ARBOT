@@ -23,6 +23,8 @@
 #define STEP_DELAY_MAX_US   (1200)   // Délai maximum entre les pas (microsecondes)
 #define STEP_RAMP           (45)     // Nombre de pas pour la rampe
 
+#define MOTOR_COUNT 3
+
 typedef struct {
     gpio_num_t stepPin;
     gpio_num_t dirPin;
