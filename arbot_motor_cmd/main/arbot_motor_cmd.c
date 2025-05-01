@@ -19,11 +19,11 @@
 #define TRAME_SIZE          (5)             // Taille de la trame attendue
 
 // Configuration des temps (modifiable via des #define)
-#define UART_READ_TIMEOUT_MS (10)   // Timeout pour la lecture UART en millisecondes
+#define UART_READ_TIMEOUT_MS (20)   // Timeout pour la lecture UART en millisecondes
 #define MOTOR_TASK_DELAY_MS  (10)   // Délai pour la tâche moteur en millisecondes
 
 // Configuration de FreeRTOS
-#define TASK_STACK_SIZE    (1024)   // Taille de la pile pour la tâche
+#define TASK_STACK_SIZE    (2048)   // Taille de la pile pour la tâche
 
 
 // File de transmission des angles
@@ -138,36 +138,49 @@ void motor_task(void *arg)
 {
     motor_angles_t angles;
     while (1) {
-        // Attend une commande d'angles
+        // Attendre la réception d'angles
         if (xQueueReceive(angle_queue, &angles, portMAX_DELAY) == pdPASS) {
-            // Conversion des angles en pas
-            int steps1 = angle_to_steps((float)angles.angle1);
-            int steps2 = angle_to_steps((float)angles.angle2);
-            int steps3 = angle_to_steps((float)angles.angle3);
-
-            // Mouvement synchronisé des 3 moteurs
-            int targets[3] = { steps1, steps2, steps3 };
-            for (int i = 0; i < 3; ++i) {
-                motors[i].target = targets[i];
-                motors[i].dir = (motors[i].target > motors[i].position);
-                gpio_set_level(motors[i].dirPin, motors[i].dir ? 0 : 1);
-            }
-
-            // Calcul du nombre total de pas à effectuer
+            int targets[3] = {
+                angle_to_steps((float)angles.angle1),
+                angle_to_steps((float)angles.angle2),
+                angle_to_steps((float)angles.angle3)
+            };
+            
+            // Vérification des limites
+            int distances[MOTOR_COUNT] = {0};
             int totalSteps = 0;
+
             for (int i = 0; i < MOTOR_COUNT; ++i) {
-                int steps = abs(motors[i].target - motors[i].position);
-                if (steps > totalSteps) totalSteps = steps;
+                // Nombre de pas à faire par moteur
+                motors[i].target = targets[i];
+
+                // Direction du moteur
+                motors[i].dir = (targets[i] > motors[i].position);
+
+                // config GPIO pour la direction
+                gpio_set_level(motors[i].dirPin, motors[i].dir ? 0 : 1);
+
+                // Calculer la distance restante
+                distances[i] = abs(targets[i] - motors[i].position);
+
+                // Reglage la ramp selon la distance la plus grande
+                if (distances[i] > totalSteps) totalSteps = distances[i];
             }
 
-            // Boucle de mouvement synchronisé
+            // Déplacement des moteurs de manière synchrone
+            float counters[MOTOR_COUNT] = {0};
             for (int step = 0; step < totalSteps; ++step) {
                 for (int i = 0; i < MOTOR_COUNT; ++i) {
-                    if (motor_is_moving(&motors[i])) motor_tick(&motors[i]);
+                    counters[i] += (float)distances[i] / totalSteps;
+                    if (counters[i] >= 1.0f) {
+                        motor_tick(&motors[i]);
+                        counters[i] -= 1.0f;
+                    }
                 }
                 esp_rom_delay_us(get_ramp_delay(step, totalSteps));
             }
         }
+
         vTaskDelay(MOTOR_TASK_DELAY_MS / portTICK_PERIOD_MS);
     }
 }
@@ -198,6 +211,11 @@ void app_main(void)
     motors_begin(); // Init GPIOs moteurs
 
     // Création des tâches
-    xTaskCreate(uart_task, "uart_task", TASK_STACK_SIZE, NULL, 11, NULL);
+    xTaskCreate(uart_task, "uart_task", TASK_STACK_SIZE, NULL, 10, NULL);
     xTaskCreate(motor_task, "motor_task", TASK_STACK_SIZE, NULL, 10, NULL);
+
+    // Boucle principale
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(1000)); // Délai pour éviter une surcharge CPU
+    }
 }

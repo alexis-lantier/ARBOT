@@ -63,23 +63,23 @@ try:
     time.sleep(0.1)
 
     # Commence un chrono
-    """start_time = time.time()
+    start_time = time.time()
     send_angles(40, 40, 40)  # Position initiale
     read_response()
 
     # terminer le chrono
     elapsed_time = time.time() - start_time
 
-    print(f"Temps écoulé pour la première trame : {elapsed_time:.3f} secondes")"""
+    print(f"Temps écoulé pour la première trame : {elapsed_time:.3f} secondes")
     
-    # Boucle de 5 qui bouuge le moteur de 0 à 45° et de 45° à 0°
+    """# Boucle de 5 qui bouuge le moteur de 0 à 45° et de 45° à 0°
     for i in range(10):
         send_angles(40, 40, 40)  # Position à 45°
         read_response()
         time.sleep(0.2)
         send_angles(-40, -40, -40)  # Retour à la position initiale
         read_response()
-        time.sleep(0.2)
+        time.sleep(0.2)"""
 
 except serial.SerialException as e:
     print(f"Erreur série : {e}")
