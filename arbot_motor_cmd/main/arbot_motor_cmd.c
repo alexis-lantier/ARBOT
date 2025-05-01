@@ -4,7 +4,6 @@
 #include "freertos/queue.h"
 #include "driver/uart.h"
 #include "driver/gpio.h"
-#include <string.h>
 #include "motor_control.h"
 
 // Configuration de l'UART pour le module ESP32-S3-DevKitC-1 v1.1
@@ -20,18 +19,28 @@
 #define TRAME_SIZE          (5)             // Taille de la trame attendue
 
 // Configuration des temps (modifiable via des #define)
-#define UART_READ_TIMEOUT_MS (2)   // Timeout pour la lecture UART en millisecondes
-#define MOTOR_TASK_DELAY_MS  (30)  // Délai pour la tâche moteur en millisecondes
+#define UART_READ_TIMEOUT_MS (5)   // Timeout pour la lecture UART en millisecondes
+#define MOTOR_TASK_DELAY_MS  (10)  // Délai pour la tâche moteur en millisecondes
 
 // Configuration de FreeRTOS
-#define TASK_STACK_SIZE    (2048)   // Taille de la pile pour la tâche
+#define TASK_STACK_SIZE    (4096)   // Taille de la pile pour la tâche
 
 
 // File de transmission des angles
 static QueueHandle_t angle_queue;
 
 // Définition de MOTSMAGIC
-#define MOTSMAGIC 0xAA // Exemple de valeur pour MOTSMAGIC
+#define MOTSMAGIC               0x79 // 0x79 = 121 en decimal -> en dehors de la plage -120 à 120
+#define MODE_ERROR              0x01 // Code d'erreur pour la trame
+#define MODE_OK                 0x00 // Code OK pour la trame
+#define CODE_ERROR_DEPASS       0x05 // Code d'erreur pour dépassement de trame
+#define CODE_ERROR_CHECKSUM     0x04 // Code d'erreur pour checksum
+#define CODE_ERROR_ANGLE        0x03 // Code d'erreur pour angle invalide
+#define CODE_ERROR_FILE         0x02 // Code d'erreur pour file pleine
+#define CODE_OK                 0x01 // Code OK pour trame valide
+
+#define ANGLE_MAX 120 // Angle maximum pour les moteurs
+#define ANGLE_MIN -120 // Angle minimum pour les moteurs
 
 // Fonction pour checksum simple (somme modulo 256)
 static uint8_t calculate_checksum(uint8_t *data, size_t len) {
@@ -44,9 +53,9 @@ static uint8_t calculate_checksum(uint8_t *data, size_t len) {
 // Fonction pour envoyer une trame d'erreur
 static void send_uart_status_code(uint8_t mode, uint8_t code) {
     uint8_t error_frame[4];
-    error_frame[0] = MOTSMAGIC;          // Identifiant de début de trame
+    error_frame[0] = MOTSMAGIC;         // Identifiant de début de trame
     error_frame[1] = mode;              // Type de trame # erreur 0xE1
-    error_frame[2] = code;                              // Code d'erreur
+    error_frame[2] = code;              // Code d'erreur
     error_frame[3] = calculate_checksum(error_frame, 3); // Checksum des 3 premiers bytes
 
     // Envoyer la trame d'erreur via UART
@@ -59,6 +68,7 @@ static void uart_task(void *arg)
     uint8_t data[BUFFER_SIZE] = {0};    // Tampon de lecture UART
     uint8_t frame[TRAME_SIZE] = {0};    // Tampon de trame
     size_t frame_index = 0;             // Index d'écriture de la trame
+    motor_angles_t motor_angles;              // Structure pour les angles des moteurs
 
     while (1) {
         // Lire les données reçues via l'UART
@@ -73,16 +83,6 @@ static void uart_task(void *arg)
                 continue;
             }
 
-            // Protection contre dépassement
-            if (frame_index >= TRAME_SIZE){
-                frame_index = 0;
-                send_uart_status_code(0xE1, 0x05); // Trame trop longue
-                continue;
-            }
-
-            // Ajouter le byte à la trame
-            frame[frame_index++] = byte;
-
             // Si un nouveau MOTSMAGIC arrive en cours de trame, resync
             if (frame_index > 1 && byte == MOTSMAGIC) {
                 frame_index = 1;
@@ -90,39 +90,52 @@ static void uart_task(void *arg)
                 continue;
             }
 
-            // Si la trame est complète (5 octets attendus)
+            // Protection contre dépassement
+            if (frame_index >= TRAME_SIZE){
+                frame_index = 0;
+                send_uart_status_code(MODE_ERROR, 0x05);
+                continue;
+            }
+
+            // Ajouter le byte à la trame
+            frame[frame_index++] = byte;
+
+            // Si la trame est complète
             if (frame_index == TRAME_SIZE) {
                 frame_index = 0; // Réinitialiser pour la prochaine trame
 
+                // Vérification de la trame via le CRC
                 uint8_t checksum = calculate_checksum(frame, 4);
-                if (checksum == frame[4]) {
-                    int angle1 = (int8_t)frame[1];
-                    int angle2 = (int8_t)frame[2];
-                    int angle3 = (int8_t)frame[3];
+                if (checksum == frame[TRAME_SIZE - 1]) {
+
+                    // Extraction des angles
+                    motor_angles.angle1 = (int8_t)frame[1];
+                    motor_angles.angle2 = (int8_t)frame[2];
+                    motor_angles.angle3 = (int8_t)frame[3];
 
                     // Validation des angles
-                    if (angle1 >= -180 && angle1 <= 180 &&
-                        angle2 >= -180 && angle2 <= 180 &&
-                        angle3 >= -180 && angle3 <= 180) {
-
-                        motor_angles_t angles = {angle1, angle2, angle3};
-
-                        send_uart_status_code(0xA1, 0x01); // Trame valide
-
-                        if (xQueueSend(angle_queue, &angles, 0) != pdPASS) {
-                            send_uart_status_code(0xE1, 0x02); // File pleine
+                    if (motor_angles.angle1 >= ANGLE_MIN && motor_angles.angle1 <= ANGLE_MAX &&
+                        motor_angles.angle2 >= ANGLE_MIN && motor_angles.angle2 <= ANGLE_MAX &&
+                        motor_angles.angle3 >= ANGLE_MIN && motor_angles.angle3 <= ANGLE_MAX) {
+                        
+                        // Envoi de la trame valide    
+                        send_uart_status_code(MODE_OK, CODE_OK);
+                        
+                        // Envoi des angles à la tâche moteur
+                        if (xQueueSend(angle_queue, &motor_angles, 0) != pdPASS) {
+                            send_uart_status_code(MODE_ERROR, CODE_ERROR_FILE); // File pleine
                         }
 
                     } else {
-                        send_uart_status_code(0xE1, 0x03); // Angle(s) invalide(s)
+                        send_uart_status_code(MODE_ERROR, CODE_ERROR_ANGLE); // Angle(s) invalide(s)
                     }
                 } else {
-                    send_uart_status_code(0xE1, 0x04); // Mauvais checksum
+                    send_uart_status_code(MODE_ERROR, CODE_ERROR_CHECKSUM); // Mauvais checksum
                 }
             }
         }
-
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        // Delay pour éviter une surcharge CPU
+        vTaskDelay(UART_READ_TIMEOUT_MS / portTICK_PERIOD_MS);
     }
 }
 
@@ -132,36 +145,49 @@ void motor_task(void *arg)
 {
     motor_angles_t angles;
     while (1) {
-        // Attend une commande d'angles
+        // Attendre la réception d'angles
         if (xQueueReceive(angle_queue, &angles, portMAX_DELAY) == pdPASS) {
-            // Conversion des angles en pas
-            int steps1 = angle_to_steps((float)angles.angle1);
-            int steps2 = angle_to_steps((float)angles.angle2);
-            int steps3 = angle_to_steps((float)angles.angle3);
-
-            // Mouvement synchronisé des 3 moteurs
-            int targets[3] = { steps1, steps2, steps3 };
-            for (int i = 0; i < 3; ++i) {
-                motors[i].target = targets[i];
-                motors[i].dir = (motors[i].target > motors[i].position);
-                gpio_set_level(motors[i].dirPin, motors[i].dir ? 0 : 1);
-            }
-
-            // Calcul du nombre total de pas à effectuer
+            int targets[3] = {
+                angle_to_steps((float)angles.angle1),
+                angle_to_steps((float)angles.angle2),
+                angle_to_steps((float)angles.angle3)
+            };
+            
+            // Vérification des limites
+            int distances[MOTOR_COUNT] = {0};
             int totalSteps = 0;
-            for (int i = 0; i < 3; ++i) {
-                int steps = abs(motors[i].target - motors[i].position);
-                if (steps > totalSteps) totalSteps = steps;
+
+            for (int i = 0; i < MOTOR_COUNT; ++i) {
+                // Nombre de pas à faire par moteur
+                motors[i].target = targets[i];
+
+                // Direction du moteur
+                motors[i].dir = (targets[i] > motors[i].position);
+
+                // config GPIO pour la direction
+                gpio_set_level(motors[i].dirPin, motors[i].dir ? 0 : 1);
+
+                // Calculer la distance restante
+                distances[i] = abs(targets[i] - motors[i].position);
+
+                // Reglage la ramp selon la distance la plus grande
+                if (distances[i] > totalSteps) totalSteps = distances[i];
             }
 
-            // Boucle de mouvement synchronisé
+            // Déplacement des moteurs de manière synchrone
+            float counters[MOTOR_COUNT] = {0};
             for (int step = 0; step < totalSteps; ++step) {
-                for (int i = 0; i < 3; ++i) {
-                    if (motor_is_moving(&motors[i])) motor_tick(&motors[i]);
+                for (int i = 0; i < MOTOR_COUNT; ++i) {
+                    counters[i] += (float)distances[i] / totalSteps;
+                    if (counters[i] >= 1.0f) {
+                        motor_tick(&motors[i]);
+                        counters[i] -= 1.0f;
+                    }
                 }
                 esp_rom_delay_us(get_ramp_delay(step, totalSteps));
             }
         }
+
         vTaskDelay(MOTOR_TASK_DELAY_MS / portTICK_PERIOD_MS);
     }
 }
@@ -169,7 +195,7 @@ void motor_task(void *arg)
 void app_main(void)
 {
     // Initialisation de la file pour les angles
-    angle_queue = xQueueCreate(10, sizeof(motor_angles_t)); // Taille de la file : 10 éléments
+    angle_queue = xQueueCreate(10, sizeof(motor_angles_t));
     if (angle_queue == NULL) {
         printf("Erreur : Impossible de créer la file\n");
         return;
@@ -188,8 +214,8 @@ void app_main(void)
     ESP_ERROR_CHECK(uart_driver_install(UART_NUM, BUFFER_SIZE * 2, 0, 0, NULL, 0));
 
     // Initialisation des moteurs
-    motors_init();
-    motors_begin();
+    motors_init();  // Init structure moteurs
+    motors_begin(); // Init GPIOs moteurs
 
     // Création des tâches
     xTaskCreate(uart_task, "uart_task", TASK_STACK_SIZE, NULL, 10, NULL);

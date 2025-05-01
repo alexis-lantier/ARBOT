@@ -1,6 +1,6 @@
 #include "motor_control.h"
 
-#define MOTOR_COUNT 3
+
 
 StepperMotor motors[MOTOR_COUNT];
 

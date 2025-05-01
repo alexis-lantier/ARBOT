@@ -1,21 +1,17 @@
 {
-    "C_Cpp.intelliSenseEngine": "default",
-    "idf.espIdfPathWin": "c:\\esp\\v5.4.1\\esp-idf",
-    "idf.toolsPathWin": "C:\\Users\\marti\\.espressif",
-    "idf.pythonInstallPath": "C:\\Users\\marti\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
-    "idf.customExtraVars": {
-        "IDF_TARGET": "esp32s3"
-    },
-    "idf.openOcdConfigs": [
-        "board/esp32s3-builtin.cfg"
-    ],
-    "idf.flashType": "UART",
-    "idf.portWin": "COM7",
-    "files.associations": {
-        "motor_control.h": "c",
-        "task.h": "c",
-        "freertos.h": "c",
-        "gpio.h": "c",
-        "stdbool.h": "c"
-    }
+  "C_Cpp.intelliSenseEngine": "default",
+  "files.associations": {
+    "freertos.h": "c"
+  },
+  "idf.espIdfPathWin": "c:\\esp\\v5.4.1\\esp-idf",
+  "idf.toolsPathWin": "C:\\Users\\marti\\.espressif",
+  "idf.pythonInstallPath": "C:\\Users\\marti\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
+  "idf.flashType": "UART",
+  "idf.portWin": "COM7",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32s3"
+  },
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
+  ]
 }

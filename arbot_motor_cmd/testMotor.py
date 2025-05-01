@@ -1,9 +1,9 @@
 import time
 import serial
 
-MOTMAGIC = 0xAA  # Motmagic pour le protocole de communication
-ERROR_FRAME_TYPE = 0xE1  # Type de trame pour les erreurs
-VALID_FRAME_TYPE = 0xA1  # Type de trame pour confirmation OK
+MOTMAGIC = 0x79          # Motmagic pour le protocole de communication
+ERROR_FRAME_TYPE = 0x01  # Type de trame pour les erreurs
+VALID_FRAME_TYPE = 0x00  # Type de trame pour confirmation OK
 
 # Fonction pour convertir une valeur signée (-128 à 127) en uint8
 def to_uint8(val):
@@ -31,10 +31,28 @@ def verify_checksum(frame):
 # Lecture de la trame de retour du moteur
 def read_response():
     while True:
-        if ser.in_waiting >= 1:
-            response = ser.read(3)
-            print("Trame brute reçue :", [hex(b) for b in response])
-            break
+        if ser.in_waiting >= 4:
+            response = ser.read(4)
+            motmagic, mode_rec, code_rec, crc = response
+            print("Trame reçue :", [hex(b) for b in response])
+            if motmagic != MOTMAGIC:
+                print("Erreur : mot magique incorrect")
+                continue
+            # Vérification du CRC (checksum)
+            calculated_crc = to_uint8((motmagic + mode_rec + code_rec) % 256)
+            if crc != calculated_crc:
+                print(f"Erreur CRC : attendu {hex(calculated_crc)}, reçu {hex(crc)}")
+                continue
+
+            if mode_rec == ERROR_FRAME_TYPE:
+                print(f"Erreur : trame d'erreur reçue, code erreur = {hex(code_rec)}")
+                continue
+            elif mode_rec == VALID_FRAME_TYPE:
+                print(f"Trame valide reçue, code = {hex(code_rec)}")
+                break
+            else:
+                print(f"Trame inconnue, mode = {hex(mode_rec)}, code = {hex(code_rec)}")
+                continue
 
 # Configuration de la connexion série
 try:
@@ -54,7 +72,7 @@ except serial.SerialException as e:
     print(f"Erreur de connexion série : {e}")
     exit()
 
-time.sleep(0.1)
+time.sleep(0.05)
 
 # Envoyer des angles de test
 try:
@@ -62,24 +80,25 @@ try:
     ser.reset_output_buffer()
     time.sleep(0.1)
 
-    # Commence un chrono
-    """start_time = time.time()
-    send_angles(40, 40, 40)  # Position initiale
-    read_response()
-
-    # terminer le chrono
-    elapsed_time = time.time() - start_time
-
-    print(f"Temps écoulé pour la première trame : {elapsed_time:.3f} secondes")"""
+    N = 10  # Nombre d'itérations
+    tot_time = 0  # Initialisation du temps total
     
-    # Boucle de 5 qui bouuge le moteur de 0 à 45° et de 45° à 0°
-    for i in range(10):
-        send_angles(40, 40, 40)  # Position à 45°
+    # mesure du temps moyen d aller retour de la trame avec N mesures
+    for i in range(N):
+        start_time = time.time()
+        send_angles(40, 40, 40)
         read_response()
-        time.sleep(0.2)
-        send_angles(-40, -40, -40)  # Retour à la position initiale
-        read_response()
-        time.sleep(0.2)
+        end_time = time.time()
+        elapsed_time = (end_time - start_time) * 1000  # Convertir en millisecondes
+        tot_time += elapsed_time
+        print(f"Temps d'aller-retour pour l'itération {i + 1}: {elapsed_time:.2f} ms")
+        time.sleep(0.1)
+    
+    # temps moyen
+    avg_time = tot_time / N
+    print(f"Temps moyen d'aller-retour sur {N} itérations : {avg_time:.2f} ms")
+
+
 
 except serial.SerialException as e:
     print(f"Erreur série : {e}")
