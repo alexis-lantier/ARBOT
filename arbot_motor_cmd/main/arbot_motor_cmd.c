@@ -19,18 +19,25 @@
 #define TRAME_SIZE          (5)             // Taille de la trame attendue
 
 // Configuration des temps (modifiable via des #define)
-#define UART_READ_TIMEOUT_MS (20)   // Timeout pour la lecture UART en millisecondes
-#define MOTOR_TASK_DELAY_MS  (10)   // Délai pour la tâche moteur en millisecondes
+#define UART_READ_TIMEOUT_MS (5)   // Timeout pour la lecture UART en millisecondes
+#define MOTOR_TASK_DELAY_MS  (10)  // Délai pour la tâche moteur en millisecondes
 
 // Configuration de FreeRTOS
-#define TASK_STACK_SIZE    (2048)   // Taille de la pile pour la tâche
+#define TASK_STACK_SIZE    (4096)   // Taille de la pile pour la tâche
 
 
 // File de transmission des angles
 static QueueHandle_t angle_queue;
 
 // Définition de MOTSMAGIC
-#define MOTSMAGIC 0x96 // Exemple de valeur pour MOTSMAGIC
+#define MOTSMAGIC               0x79 // 0x79 = 121 en decimal -> en dehors de la plage -120 à 120
+#define MODE_ERROR              0x01 // Code d'erreur pour la trame
+#define MODE_OK                 0x00 // Code OK pour la trame
+#define CODE_ERROR_DEPASS       0x05 // Code d'erreur pour dépassement de trame
+#define CODE_ERROR_CHECKSUM     0x04 // Code d'erreur pour checksum
+#define CODE_ERROR_ANGLE        0x03 // Code d'erreur pour angle invalide
+#define CODE_ERROR_FILE         0x02 // Code d'erreur pour file pleine
+#define CODE_OK                 0x01 // Code OK pour trame valide
 
 #define ANGLE_MAX 120 // Angle maximum pour les moteurs
 #define ANGLE_MIN -120 // Angle minimum pour les moteurs
@@ -86,7 +93,7 @@ static void uart_task(void *arg)
             // Protection contre dépassement
             if (frame_index >= TRAME_SIZE){
                 frame_index = 0;
-                send_uart_status_code(0xE1, 0x05);
+                send_uart_status_code(MODE_ERROR, 0x05);
                 continue;
             }
 
@@ -112,18 +119,18 @@ static void uart_task(void *arg)
                         motor_angles.angle3 >= ANGLE_MIN && motor_angles.angle3 <= ANGLE_MAX) {
                         
                         // Envoi de la trame valide    
-                        send_uart_status_code(0xA1, 0x01);
+                        send_uart_status_code(MODE_OK, CODE_OK);
                         
                         // Envoi des angles à la tâche moteur
                         if (xQueueSend(angle_queue, &motor_angles, 0) != pdPASS) {
-                            send_uart_status_code(0xE1, 0x02); // File pleine
+                            send_uart_status_code(MODE_ERROR, CODE_ERROR_FILE); // File pleine
                         }
 
                     } else {
-                        send_uart_status_code(0xE1, 0x03); // Angle(s) invalide(s)
+                        send_uart_status_code(MODE_ERROR, CODE_ERROR_ANGLE); // Angle(s) invalide(s)
                     }
                 } else {
-                    send_uart_status_code(0xE1, 0x04); // Mauvais checksum
+                    send_uart_status_code(MODE_ERROR, CODE_ERROR_CHECKSUM); // Mauvais checksum
                 }
             }
         }
@@ -213,9 +220,4 @@ void app_main(void)
     // Création des tâches
     xTaskCreate(uart_task, "uart_task", TASK_STACK_SIZE, NULL, 10, NULL);
     xTaskCreate(motor_task, "motor_task", TASK_STACK_SIZE, NULL, 10, NULL);
-
-    // Boucle principale
-    while (1) {
-        vTaskDelay(pdMS_TO_TICKS(1000)); // Délai pour éviter une surcharge CPU
-    }
 }
