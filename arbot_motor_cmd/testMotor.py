@@ -1,106 +1,122 @@
 import time
 import serial
+import struct
 
-MOTMAGIC = 0x79          # Motmagic pour le protocole de communication
-ERROR_FRAME_TYPE = 0x01  # Type de trame pour les erreurs
-VALID_FRAME_TYPE = 0x00  # Type de trame pour confirmation OK
+class MotorTester:
+    MOTMAGIC = 0x79
+    ERROR_FRAME_TYPE = 0x01
+    VALID_FRAME_TYPE = 0x00
+    ANGLE_MIN = -120
+    ANGLE_MAX = 120
+    ERROR_CODES = {
+        0x05: "Erreur : dépassement de trame",
+        0x04: "Erreur : checksum incorrect",
+        0x03: "Erreur : angle invalide",
+        0x02: "Erreur : file pleine",
+        0x01: "OK",
+        0x00: "Aucun code"
+    }
 
-# Fonction pour convertir une valeur signée (-128 à 127) en uint8
-def to_uint8(val):
-    return val & 0xFF
+    def __init__(self, port='COM7', baudrate=115200):
+        try:
+            self.ser = serial.Serial(
+                port=port,
+                baudrate=baudrate,
+                bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+                timeout=1,
+                xonxoff=False,
+                rtscts=False,
+                dsrdtr=False
+            )
+            print("Connexion série établie avec succès.")
+        except serial.SerialException as e:
+            print(f"Erreur lors de la connexion série : {e}")
+            self.ser = None
 
-# Fonction pour envoyer 3 angles sur le port série
-def send_angles(angle1, angle2, angle3):
-    ser.write(MOTMAGIC.to_bytes(1, 'big'))  # Envoi du mot magique
-    a1 = to_uint8(angle1)  # Conversion de l'angle 1
-    a2 = to_uint8(angle2)  # Conversion de l'angle 2
-    a3 = to_uint8(angle3)  # Conversion de l'angle 3
-    ser.write(a1.to_bytes(1, 'big'))  # Envoi de l'angle 1
-    ser.write(a2.to_bytes(1, 'big'))  # Envoi de l'angle 2
-    ser.write(a3.to_bytes(1, 'big'))  # Envoi de l'angle 3
-    # Calcul du checksum
-    checksum = to_uint8((MOTMAGIC + a1 + a2 + a3) % 256)
-    ser.write(checksum.to_bytes(1, 'big'))
-    print(f"Envoyé: {[hex(MOTMAGIC), hex(angle1), hex(angle2), hex(angle3), hex(checksum)]}")
+    def close(self):
+        if self.ser and self.ser.is_open:
+            self.ser.close()
+            print("Connexion série fermée.")
+        else:
+            print("Connexion série déjà fermée ou jamais ouverte.")
 
-# Fonction pour vérifier le checksum
-def verify_checksum(frame):
-    calculated_checksum = sum(frame[:3]) % 256
-    return calculated_checksum == frame[3]
+    @staticmethod
+    def to_uint8(val):      # Convert to uint8 data type
+        return val & 0xFF
 
-# Lecture de la trame de retour du moteur
-def read_response():
-    while True:
-        if ser.in_waiting >= 4:
-            response = ser.read(4)
-            motmagic, mode_rec, code_rec, crc = response
-            print("Trame reçue :", [hex(b) for b in response])
-            if motmagic != MOTMAGIC:
-                print("Erreur : mot magique incorrect")
-                continue
-            # Vérification du CRC (checksum)
-            calculated_crc = to_uint8((motmagic + mode_rec + code_rec) % 256)
-            if crc != calculated_crc:
-                print(f"Erreur CRC : attendu {hex(calculated_crc)}, reçu {hex(crc)}")
-                continue
+    def send_angles(self, angle1, angle2, angle3):
+        # Vérification des plages d'angles
+        for idx, angle in enumerate([angle1, angle2, angle3], start=1):
+            if not (self.ANGLE_MIN <= angle <= self.ANGLE_MAX):
+                raise ValueError(f"Angle {idx} ({angle}) hors de la plage autorisée [{self.ANGLE_MIN}, {self.ANGLE_MAX}]")
+        a1 = self.to_uint8(angle1)
+        a2 = self.to_uint8(angle2)
+        a3 = self.to_uint8(angle3)
+        checksum = self.to_uint8((self.MOTMAGIC + a1 + a2 + a3) % 256)
+        frame = struct.pack('>BBBBB', self.MOTMAGIC, a1, a2, a3, checksum)
+        self.ser.write(frame)
+        print(f"Envoyé: {[hex(b) for b in frame]}")
 
-            if mode_rec == ERROR_FRAME_TYPE:
-                print(f"Erreur : trame d'erreur reçue, code erreur = {hex(code_rec)}")
-                continue
-            elif mode_rec == VALID_FRAME_TYPE:
-                print(f"Trame valide reçue, code = {hex(code_rec)}")
-                break
-            else:
-                print(f"Trame inconnue, mode = {hex(mode_rec)}, code = {hex(code_rec)}")
-                continue
-
-# Configuration de la connexion série
-try:
-    ser = serial.Serial(
-        port='COM7',
-        baudrate=115200,
-        bytesize=serial.EIGHTBITS,
-        parity=serial.PARITY_NONE,
-        stopbits=serial.STOPBITS_ONE,
-        timeout=1,
-        xonxoff=False,
-        rtscts=False,
-        dsrdtr=False
-    )
-    print("Connexion série établie avec succès.")
-except serial.SerialException as e:
-    print(f"Erreur de connexion série : {e}")
-    exit()
-
-time.sleep(0.05)
-
-# Envoyer des angles de test
-try:
-    ser.reset_input_buffer()
-    ser.reset_output_buffer()
-    time.sleep(0.1)
-
-    N = 10  # Nombre d'itérations
-    tot_time = 0  # Initialisation du temps total
-    
-    # mesure du temps moyen d aller retour de la trame avec N mesures
-    for i in range(N):
+    def read_response(self):
         start_time = time.time()
-        send_angles(40, 40, 40)
-        read_response()
-        end_time = time.time()
-        elapsed_time = (end_time - start_time) * 1000  # Convertir en millisecondes
-        tot_time += elapsed_time
-        print(f"Temps d'aller-retour pour l'itération {i + 1}: {elapsed_time:.2f} ms")
+        while True:
+            if self.ser.in_waiting >= 4:
+                response = self.ser.read(4)
+                if len(response) != 4:
+                    print("Réponse incomplète reçue.")
+                    continue
+                motmagic, mode_rec, code_rec, crc = response
+                print("Trame reçue :", [hex(b) for b in response])
+                if motmagic != self.MOTMAGIC:
+                    print("Erreur : mot magique incorrect")
+                    continue
+                calculated_crc = self.to_uint8((motmagic + mode_rec + code_rec) % 256)
+                if crc != calculated_crc:
+                    print(f"Erreur CRC : attendu {hex(calculated_crc)}, reçu {hex(crc)}")
+                    continue
+                msg = self.ERROR_CODES.get(code_rec, f"Code inconnu: {hex(code_rec)}")
+                if mode_rec == self.ERROR_FRAME_TYPE:
+                    print(f"Erreur : trame d'erreur reçue, {msg}")
+                    continue
+                elif mode_rec == self.VALID_FRAME_TYPE:
+                    print(f"Trame valide reçue, {msg}")
+                    break
+                else:
+                    print(f"Trame inconnue, mode = {hex(mode_rec)}, code = {hex(code_rec)}")
+                    continue
+            # Timeout pour éviter boucle infinie
+            if time.time() - start_time > 2:
+                print("Timeout lors de la lecture de la réponse.")
+                break
+
+    def test_angles(self, angle1, angle2, angle3, N=10):
+        self.ser.reset_input_buffer()
+        self.ser.reset_output_buffer()
         time.sleep(0.1)
-    
-    # temps moyen
-    avg_time = tot_time / N
-    print(f"Temps moyen d'aller-retour sur {N} itérations : {avg_time:.2f} ms")
+        tot_time = 0
+        for i in range(N):
+            start_time = time.time()
+            self.send_angles(angle1, angle2, angle3)
+            self.read_response()
+            end_time = time.time()
+            elapsed_time = (end_time - start_time) * 1000
+            tot_time += elapsed_time
+            print(f"Temps d'aller-retour pour l'itération {i + 1}: {elapsed_time:.2f} ms")
+            time.sleep(0.1)
+        avg_time = tot_time / N
+        print(f"Temps moyen d'aller-retour sur {N} itérations : {avg_time:.2f} ms")
 
-
-
-except serial.SerialException as e:
-    print(f"Erreur série : {e}")
-except Exception as e:
-    print(f"Erreur inattendue : {e}")
+if __name__ == "__main__":
+    try:
+        tester = MotorTester(port='COM7', baudrate=115200)
+        time.sleep(0.05)
+        tester.test_angles(40, 40, 40, N=10)
+    except serial.SerialException as e:
+        print(f"Erreur série : {e}")
+    except Exception as e:
+        print(f"Erreur inattendue : {e}")
+    finally:
+        if 'tester' in locals():
+            tester.close()
