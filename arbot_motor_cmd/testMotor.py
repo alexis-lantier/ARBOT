@@ -6,6 +6,7 @@ class MotorTester:
     MOTMAGIC = 0x79
     ERROR_FRAME_TYPE = 0x01
     VALID_FRAME_TYPE = 0x00
+    MOTOR_FRAME_TYPE = 0x02
     ANGLE_MIN = -120
     ANGLE_MAX = 120
     ERROR_CODES = {
@@ -83,11 +84,14 @@ class MotorTester:
                 elif mode_rec == self.VALID_FRAME_TYPE:
                     print(f"Trame valide reçue, {msg}")
                     break
+                elif mode_rec == self.MOTOR_FRAME_TYPE:
+                    print(f"Trame moteur reçue, {msg}")
+                    break
                 else:
                     print(f"Trame inconnue, mode = {hex(mode_rec)}, code = {hex(code_rec)}")
                     continue
             # Timeout pour éviter boucle infinie
-            if time.time() - start_time > 2:
+            if time.time() - start_time > 1:
                 print("Timeout lors de la lecture de la réponse.")
                 break
 
@@ -111,8 +115,16 @@ class MotorTester:
 if __name__ == "__main__":
     try:
         tester = MotorTester(port='COM7', baudrate=115200)
-        time.sleep(0.05)
-        tester.test_angles(40, 40, 40, N=10)
+        time.sleep(1)
+
+        # Vide le buffer d'entrée et de sortie
+        tester.ser.reset_input_buffer()
+        tester.ser.reset_output_buffer()
+        time.sleep(0.1)
+
+        tester.send_angles(1, 2, 3)
+        tester.read_response()
+
     except serial.SerialException as e:
         print(f"Erreur série : {e}")
     except Exception as e:

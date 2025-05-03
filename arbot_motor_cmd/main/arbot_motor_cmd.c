@@ -5,6 +5,7 @@
 #include "driver/uart.h"
 #include "driver/gpio.h"
 #include "motor_control.h"
+#include <string.h>
 
 // Configuration de l'UART pour le module ESP32-S3-DevKitC-1 v1.1
 #define UART_TX (GPIO_NUM_43)               // TX pin
@@ -33,6 +34,7 @@ static QueueHandle_t angle_queue;
 #define MOTSMAGIC               0x79 // 0x79 = 121 en decimal -> en dehors de la plage -120 à 120
 #define MODE_ERROR              0x01 // Code d'erreur pour la trame
 #define MODE_OK                 0x00 // Code OK pour la trame
+#define MODE_MOTOR              0x02 // Code pour la trame moteur
 #define CODE_ERROR_DEPASS       0x05 // Code d'erreur pour dépassement de trame
 #define CODE_ERROR_CHECKSUM     0x04 // Code d'erreur pour checksum
 #define CODE_ERROR_ANGLE        0x03 // Code d'erreur pour angle invalide
@@ -68,7 +70,7 @@ static void uart_task(void *arg)
     uint8_t data[BUFFER_SIZE] = {0};    // Tampon de lecture UART
     uint8_t frame[TRAME_SIZE] = {0};    // Tampon de trame
     size_t frame_index = 0;             // Index d'écriture de la trame
-    motor_angles_t motor_angles;              // Structure pour les angles des moteurs
+    motor_angles_t motor_angles;        // Structure pour les angles des moteurs
 
     while (1) {
         // Lire les données reçues via l'UART
@@ -144,18 +146,23 @@ static void uart_task(void *arg)
 void motor_task(void *arg)
 {
     motor_angles_t angles;
+    int targets[3] = {0};
+    int distances[MOTOR_COUNT] = {0};
+    int totalSteps = 0;
+    float counters[MOTOR_COUNT] = {0};
+
     while (1) {
         // Attendre la réception d'angles
         if (xQueueReceive(angle_queue, &angles, portMAX_DELAY) == pdPASS) {
-            int targets[3] = {
-                angle_to_steps((float)angles.angle1),
-                angle_to_steps((float)angles.angle2),
-                angle_to_steps((float)angles.angle3)
-            };
+
+            // Cpy les angles dans la cible
+            targets[0] = angles.angle1;
+            targets[1] = angles.angle2;
+            targets[2] = angles.angle3;
             
             // Vérification des limites
-            int distances[MOTOR_COUNT] = {0};
-            int totalSteps = 0;
+            memset(distances, 0, sizeof(distances)); // Réinitialiser les distances
+            totalSteps = 0;
 
             for (int i = 0; i < MOTOR_COUNT; ++i) {
                 // Nombre de pas à faire par moteur
@@ -175,7 +182,7 @@ void motor_task(void *arg)
             }
 
             // Déplacement des moteurs de manière synchrone
-            float counters[MOTOR_COUNT] = {0};
+            memset(counters, 0, sizeof(counters)); // Réinitialiser les compteurs
             for (int step = 0; step < totalSteps; ++step) {
                 for (int i = 0; i < MOTOR_COUNT; ++i) {
                     counters[i] += (float)distances[i] / totalSteps;
@@ -195,7 +202,7 @@ void motor_task(void *arg)
 void app_main(void)
 {
     // Initialisation de la file pour les angles
-    angle_queue = xQueueCreate(10, sizeof(motor_angles_t));
+    angle_queue = xQueueCreate(20, sizeof(motor_angles_t));
     if (angle_queue == NULL) {
         printf("Erreur : Impossible de créer la file\n");
         return;
@@ -218,6 +225,11 @@ void app_main(void)
     motors_begin(); // Init GPIOs moteurs
 
     // Création des tâches
-    xTaskCreate(uart_task, "uart_task", TASK_STACK_SIZE, NULL, 10, NULL);
-    xTaskCreate(motor_task, "motor_task", TASK_STACK_SIZE, NULL, 10, NULL);
+    xTaskCreate(uart_task, "uart_task", TASK_STACK_SIZE, NULL, 5, NULL);
+    xTaskCreate(motor_task, "motor_task", TASK_STACK_SIZE, NULL, 15, NULL);
+
+    // Boucle principale (peut être vide si tout est géré par les tâches)
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(1000)); // Délai pour éviter une surcharge CPU
+    }
 }
