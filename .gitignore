@@ -177,3 +177,6 @@ cython_debug/
 # For ESP-IDF
 # Build directory
 build/
+
+# Pas de .vscode pour tous les projets
+.vscode/
