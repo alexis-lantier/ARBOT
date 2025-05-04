@@ -6,3 +6,4 @@ class ConnectionToMicrocontroller:
         # Send the angles to the motor ( envoyer delta dans un message)
 
         pass
+    
