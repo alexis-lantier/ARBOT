@@ -7,16 +7,17 @@ from collections import deque
 
 WIDTH = 640
 HEIGHT = 480
-camera_index = 1
+camera_index = 0
 
 
 class Cam:
-    def __init__(self, connectionCam):
-        self._connectionCam = connectionCam  # pas sur d'avoir besoin
+    def __init__(self):
+        
         self._previous_position = Vector(None, None, None)
         self._position = Vector()
         self._ballSpeed = Vector()
         self._previous_time = None
+
         cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
         if not cap.isOpened():
             print("Erreur: Impossible d'ouvrir la caméra.")
