@@ -1,4 +1,3 @@
-from Connection_Cam import ConnectionCam
 from Vector import Vector
 import cv2
 import numpy as np
@@ -7,37 +6,41 @@ from collections import deque
 
 WIDTH = 640
 HEIGHT = 480
-camera_index = 0
+CAMERA_INDEX = 0
 
 
 class Cam:
     def __init__(self):
-        
+        """Initialise la caméra et les paramètres nécessaires."""
         self._previous_position = Vector(None, None, None)
         self._position = Vector()
         self._ballSpeed = Vector()
         self._previous_time = None
+        self._radius = None
 
-        cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
-        if not cap.isOpened():
-            print("Erreur: Impossible d'ouvrir la caméra.")
+        # Initialisation de la caméra
+        self._cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
+        if not self._cap.isOpened():
+            print(f"Erreur: Impossible d'ouvrir la caméra avec l'index {CAMERA_INDEX}.")
             exit()
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
-        self._cap = cap
-        self._lower_orange = np.array([94, 70, 56, 39, 30])
+
+        self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
+        self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
+
+        # Plage de couleurs pour détecter la balle orange
+        self._lower_orange = np.array([5, 150, 150])
         self._upper_orange = np.array([25, 255, 255])
 
-        # calibration hauteur
+        # Calibration hauteur
         diam_px = np.array([94, 70, 56, 39, 30])  # Diamètre en pixels
         haut = np.array([0, 10, 50, 100, 200])  # Hauteur réelle correspondante en mm
         coefficients = np.polyfit(diam_px, haut, 2)
         self._poly = np.poly1d(coefficients)
 
-    def detect_ball(frame, lower_orange, upper_orange):
-        """Applique un masque HSV et détecte la balle, retourne le centre et le rayon"""
+    def detect_ball(self, frame):
+        """Applique un masque HSV et détecte la balle, retourne le centre et le rayon."""
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, lower_orange, upper_orange)
+        mask = cv2.inRange(hsv, self._lower_orange, self._upper_orange)
         mask = cv2.erode(mask, None, iterations=1)
         mask = cv2.dilate(mask, None, iterations=1)
 
@@ -51,16 +54,16 @@ class Cam:
                 return (int(x), int(y)), radius
         return None, None
 
-    def calculate_position(center, radius, poly):
-        """Calcule la position X, Y, et Z à partir de la détection de la balle"""
+    def calculate_position(self, center, radius):
+        """Calcule la position X, Y, et Z à partir de la détection de la balle."""
         if center and radius:
             x, y = center
-            z = poly(2 * radius)  # Conversion diamètre -> hauteur en mm
+            z = self._poly(2 * radius)  # Conversion diamètre -> hauteur en mm
             return x, y, z
         return None, None, None
 
-    def calculate_speed(prev_x, prev_y, prev_z, prev_time, x, y, z):
-        """Calcule la vitesse de la balle en X, Y et Z"""
+    def calculate_speed(self, prev_x, prev_y, prev_z, prev_time, x, y, z):
+        """Calcule la vitesse de la balle en X, Y et Z."""
         vitesse_x, vitesse_y, vitesse_z = 0, 0, 0
         current_time = time.time()
 
@@ -74,18 +77,25 @@ class Cam:
         return vitesse_x, vitesse_y, vitesse_z, current_time
 
     def GetSpeed(self):
-        VectorSpeed = self._ballSpeed
-        return VectorSpeed
+        """Retourne la vitesse actuelle de la balle."""
+        return self._ballSpeed
 
     def GetPosition(self):
-        VectorPosition = self._position
-        return VectorPosition
+        """Retourne la position actuelle de la balle."""
+        return self._position
 
     def Update(self):
-        frame = cv2.resize(frame, (640, 480))
-        center, radius = self.detect_ball(frame, self._lower_orange, self._upper_orange)
-        x, y, z = self.calculate_position(center, radius, self._poly)
+        """Met à jour la position et la vitesse de la balle."""
+        ret, frame = self._cap.read()
+        if not ret:
+            print("Erreur: Impossible de lire la vidéo.")
+            return
+
+        frame = cv2.resize(frame, (WIDTH, HEIGHT))
+        center, self._radius = self.detect_ball(frame)
+        x, y, z = self.calculate_position(center, self._radius)
         self._position = Vector(x, y, z)
+
         vitesse_x, vitesse_y, vitesse_z, self._previous_time = self.calculate_speed(
             self._previous_position.x,
             self._previous_position.y,
@@ -95,6 +105,49 @@ class Cam:
             self._position.y,
             self._position.z,
         )
+        self._ballSpeed = Vector(vitesse_x, vitesse_y, vitesse_z)
         self._previous_position = self._position
 
-    # utilisation de la connection pour mettre à jour la vitesse de la balle
+    def display(self):
+        """Affiche la vidéo avec les informations de suivi de la balle."""
+        ret, frame = self._cap.read()
+        if not ret or frame is None:
+            print("Erreur: Impossible de lire la vidéo.")
+            return
+
+        center = (int(self._position.x), int(self._position.y)) if self._position.x and self._position.y else None
+        vitesse_x, vitesse_y, vitesse_z = self._ballSpeed.x, self._ballSpeed.y, self._ballSpeed.z
+        x, y, z = self._position.x, self._position.y, self._position.z
+        pts = deque(maxlen=16)
+
+        if center and self._radius is not None:
+            pts.appendleft(center)
+            cv2.circle(frame, center, int(self._radius), (0, 255, 255), 2)
+            cv2.circle(frame, center, 3, (0, 0, 255), -1)
+
+        for i in range(1, len(pts)):
+            if pts[i - 1] is None or pts[i] is None:
+                continue
+            thickness = int(np.sqrt(16 / float(i + 1)) * 1.5)
+            cv2.line(frame, pts[i - 1], pts[i], (0, 255, 0), thickness)
+
+        # Affichage des informations
+        text_position = f"X: {x if x else '-'} | Y: {y if y else '-'} | Z: {z:.2f} mm" if z else "Calcul Z en attente"
+        text_vitesse = f"Vx: {vitesse_x:.2f} px/s | Vy: {vitesse_y:.2f} px/s | Vz: {vitesse_z:.2f} mm/s"
+
+        cv2.putText(frame, text_position, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+        cv2.putText(frame, text_vitesse, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
+        # Affichage final
+        cv2.imshow("Tracking Balle ORANGE avec Vitesse", frame)
+
+        # Quitter avec la touche 'q'
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            self._cap.release()
+            cv2.destroyAllWindows()
+            return
+
+    def release(self):
+        """Libère les ressources de la caméra."""
+        self._cap.release()
+        cv2.destroyAllWindows()

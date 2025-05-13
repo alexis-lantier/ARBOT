@@ -1,5 +1,6 @@
 from Application import Application
 from Cam import Cam
+import time 
 
 def main():
     cam = Cam()
@@ -7,7 +8,9 @@ def main():
         print("pos X :",cam._position.x)
         print("pos Y :",cam._position.y)
         print("pos Z :",cam._position.z)
+        
         cam.Update()
+        cam.display()
 
     #app = Application()
     #app.Test()
