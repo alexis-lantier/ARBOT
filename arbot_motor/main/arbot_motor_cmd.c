@@ -20,7 +20,7 @@
 #define TRAME_SIZE          (5)             // Taille de la trame attendue
 
 // Configuration des temps (modifiable via des #define)
-#define UART_READ_TIMEOUT_MS (5)   // Timeout pour la lecture UART en millisecondes
+#define UART_READ_TIMEOUT_MS (10)   // Timeout pour la lecture UART en millisecondes
 #define MOTOR_TASK_DELAY_MS  (10)  // Délai pour la tâche moteur en millisecondes
 
 // Configuration de FreeRTOS
@@ -182,7 +182,7 @@ void motor_task(void *arg)
             }
 
             // Déplacement des moteurs de manière synchrone
-            memset(counters, 0, sizeof(counters)); // Réinitialiser les compteurs
+            memset(counters, 0, sizeof(counters));              // Réinitialiser les compteurs
             for (int step = 0; step < totalSteps; ++step) {
                 for (int i = 0; i < MOTOR_COUNT; ++i) {
                     counters[i] += (float)distances[i] / totalSteps;
@@ -194,7 +194,6 @@ void motor_task(void *arg)
                 esp_rom_delay_us(get_ramp_delay(step, totalSteps));
             }
         }
-
         vTaskDelay(MOTOR_TASK_DELAY_MS / portTICK_PERIOD_MS);
     }
 }
@@ -225,8 +224,55 @@ void app_main(void)
     motors_begin(); // Init GPIOs moteurs
 
     // Création des tâches
-    xTaskCreate(uart_task, "uart_task", TASK_STACK_SIZE, NULL, 5, NULL);
-    xTaskCreate(motor_task, "motor_task", TASK_STACK_SIZE, NULL, 15, NULL);
+    //xTaskCreate(uart_task, "uart_task", TASK_STACK_SIZE, NULL, 5, NULL);
+    //xTaskCreate(motor_task, "motor_task", TASK_STACK_SIZE, NULL, 15, NULL);
+
+    int targets[3] = {0};
+    int distances[MOTOR_COUNT] = {0};
+    int totalSteps = 0;
+    float counters[MOTOR_COUNT] = {0};
+
+    // Cpy les angles dans la cible
+    targets[0] = 20;
+    targets[1] = 20;
+    targets[2] = 20;
+    
+    // Vérification des limites
+    memset(distances, 0, sizeof(distances)); // Réinitialiser les distances
+    totalSteps = 0;
+
+    for (int i = 0; i < MOTOR_COUNT; ++i) {
+        // Nombre de pas à faire par moteur
+        motors[i].target = targets[i];
+
+        // Direction du moteur
+        motors[i].dir = (targets[i] > motors[i].position);
+
+        // config GPIO pour la direction
+        gpio_set_level(motors[i].dirPin, motors[i].dir ? 0 : 1);
+
+        // Calculer la distance restante
+        distances[i] = abs(targets[i] - motors[i].position);
+
+        // Reglage la ramp selon la distance la plus grande
+        if (distances[i] > totalSteps) totalSteps = distances[i];
+    }
+
+    // Déplacement des moteurs de manière synchrone
+    memset(counters, 0, sizeof(counters));              // Réinitialiser les compteurs
+    for (int step = 0; step < totalSteps; ++step) {
+        for (int i = 0; i < MOTOR_COUNT; ++i) {
+            counters[i] += (float)distances[i] / totalSteps;
+
+
+            ///// ???????????????????????????????
+            if (counters[i] >= 1.0f) {
+                motor_tick(&motors[i]);
+                counters[i] -= 1.0f;
+            }
+        }
+        esp_rom_delay_us(get_ramp_delay(step, totalSteps));
+    }
 
     // Boucle principale (peut être vide si tout est géré par les tâches)
     while (1) {
