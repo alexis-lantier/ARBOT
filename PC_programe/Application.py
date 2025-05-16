@@ -1,5 +1,6 @@
 from Machine import Machine
-
+from threading import Thread, Event
+import keyboard
 
 class Application:
 
@@ -10,7 +11,37 @@ class Application:
         pass
 
     def Regulation(self):
-        pass
+        self._machine._ball.Update()
+        self._machine.RegulationCenter()
+        self._machine.RegulationBounce()
+
+    def Run(self):
+
+        stop_event = Event()
+        update_thread = Thread(
+            target=self._machine._ball._cam.display_loop,  
+            args=(stop_event,),
+            daemon=True
+        )
+        update_thread.start()
+        self.Initialisation()
+        while True:
+            self.Regulation()
+
+
+            # print("pos X :",self._machine._ball._XPosition)
+            # print("pos Y :",self._machine._ball._YPosition)
+            # print("pos Z :",self._machine._ball._ZPosition)
+            if keyboard.is_pressed('q'):
+                print("Arrêt demandé par l'utilisateur.")
+                stop_event.set()
+                break
+        update_thread.join()
+
+        self._machine._ball._cam.release()
+        
+            
+        
 
     def Afficher_menu(self, A, B, C):
         print("\n=== MENU MANUEL ===")

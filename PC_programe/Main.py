@@ -3,18 +3,9 @@ from Cam import Cam
 import time 
 
 def main():
-    cam = Cam()
-    while(1) :
-        print("pos X :",cam._position.x)
-        print("pos Y :",cam._position.y)
-        print("pos Z :",cam._position.z)
-        
-        cam.Update()
-        cam.display()
-
-    #app = Application()
-    #app.Test()
-
+    app = Application()
+    app.Run()
+ 
 
 if __name__ == "__main__":
     main()

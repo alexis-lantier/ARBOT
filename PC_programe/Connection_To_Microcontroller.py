@@ -48,19 +48,20 @@ class ConnectionToMicrocontroller:
         return val & 0xFF
 
     def send_angles(self, angle1, angle2, angle3):
-        for idx, angle in enumerate([angle1, angle2, angle3], start=1):
-            if not (self.ANGLE_MIN <= angle <= self.ANGLE_MAX):
-                return 2  # Code d'erreur pour angle hors plage
-        a1 = self.to_uint8(angle1)
-        a2 = self.to_uint8(angle2)
-        a3 = self.to_uint8(angle3)
-        checksum = self.to_uint8((self.MOTMAGIC + a1 + a2 + a3) % 256)
-        frame = struct.pack('>BBBBB', self.MOTMAGIC, a1, a2, a3, checksum)
-        if self.ser and self.ser.is_open:
-            self.ser.write(frame)
-            return 0  # Succès
-        else:
-            return 3  # Port série non ouvert
+        pass
+        # for idx, angle in enumerate([angle1, angle2, angle3], start=1):
+        #     if not (self.ANGLE_MIN <= angle <= self.ANGLE_MAX):
+        #         return 2  # Code d'erreur pour angle hors plage
+        # a1 = self.to_uint8(angle1)
+        # a2 = self.to_uint8(angle2)
+        # a3 = self.to_uint8(angle3)
+        # checksum = self.to_uint8((self.MOTMAGIC + a1 + a2 + a3) % 256)
+        # frame = struct.pack('>BBBBB', self.MOTMAGIC, a1, a2, a3, checksum)
+        # if self.ser and self.ser.is_open:
+        #     self.ser.write(frame)
+        #     return 0  # Succès
+        # else:
+        #     return 3  # Port série non ouvert
 
     def read_response(self):
         start_time = time.time()

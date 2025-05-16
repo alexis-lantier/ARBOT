@@ -47,7 +47,7 @@ class Plate:
         # Update the height
 
         self._height = height
-        self._connectionToMicrocontroller.SendMovement(
+        self._connectionToMicrocontroller.send_angles(
             self._axisA._motor.getAngle(),
             self._axisB._motor.getAngle(),
             self._axisC._motor.getAngle(),
@@ -123,7 +123,7 @@ class Plate:
         self._anglePhi = angle
         self._height = (h1 + h2 + h3) / 3
 
-        self._connectionToMicrocontroller.SendMovement(
+        self._connectionToMicrocontroller.send_angles(
             self._axisA._motor.getAngle(),
             self._axisB._motor.getAngle(),
             self._axisC._motor.getAngle(),
@@ -145,11 +145,32 @@ class Plate:
         self._angleTheta = angle
         self._height = (h1 + h2 + h3) / 3
 
-        self._connectionToMicrocontroller.SendMovement(
+        self._connectionToMicrocontroller.send_angles(
             self._axisA._motor.getAngle(),
             self._axisB._motor.getAngle(),
             self._axisC._motor.getAngle(),
         )
+
+    def MakeOneBounce(self):
+        bounce_height = 10
+        self._axisA.move(self._axisA._height + bounce_height)
+        self._axisB.move(self._axisB._height + bounce_height)
+        self._axisC.move(self._axisC._height + bounce_height)
+        self._connectionToMicrocontroller.send_angles(
+            self._axisA._motor.getAngle(),
+            self._axisB._motor.getAngle(),
+            self._axisC._motor.getAngle(),
+        )
+
+        self._axisA.move(self._axisA._height - bounce_height)
+        self._axisB.move(self._axisB._height - bounce_height)
+        self._axisC.move(self._axisC._height - bounce_height)
+        self._connectionToMicrocontroller.send_angles(
+            self._axisA._motor.getAngle(),
+            self._axisB._motor.getAngle(),
+            self._axisC._motor.getAngle(),
+        )
+        print("💥 Rebond déclenché !")
 
     def GetAnglePhi(self):
         return self._anglePhi

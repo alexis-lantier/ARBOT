@@ -8,7 +8,7 @@ WIDTH = 640
 HEIGHT = 480
 CAMERA_INDEX = 0
 
-
+#### début des modifs
 class Cam:
     def __init__(self):
         """Initialise la caméra et les paramètres nécessaires."""
@@ -24,8 +24,8 @@ class Cam:
             print(f"Erreur: Impossible d'ouvrir la caméra avec l'index {CAMERA_INDEX}.")
             exit()
 
-        self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
-        self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
+        self._cap.set(3, WIDTH)
+        self._cap.set(4, HEIGHT)
 
         # Plage de couleurs pour détecter la balle orange
         self._lower_orange = np.array([5, 150, 150])
@@ -37,22 +37,20 @@ class Cam:
         coefficients = np.polyfit(diam_px, haut, 2)
         self._poly = np.poly1d(coefficients)
 
+   
+    
     def detect_ball(self, frame):
-        """Applique un masque HSV et détecte la balle, retourne le centre et le rayon."""
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, self._lower_orange, self._upper_orange)
-        mask = cv2.erode(mask, None, iterations=1)
-        mask = cv2.dilate(mask, None, iterations=1)
-
-        contours, _ = cv2.findContours(
-            mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+        mask = cv2.inRange(cv2.cvtColor(frame, cv2.COLOR_BGR2HSV), self._lower_orange, self._upper_orange)
+        mask = cv2.dilate(cv2.erode(mask, None, 1), None, 1)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if contours:
-            largest_contour = max(contours, key=cv2.contourArea)
-            ((x, y), radius) = cv2.minEnclosingCircle(largest_contour)
-            if radius > 5:  # Filtrage des valeurs aberrantes
-                return (int(x), int(y)), radius
+            ((x, y), r) = cv2.minEnclosingCircle(max(contours, key=cv2.contourArea))
+            if r > 5:
+                return (int(x), int(y)),r  # Retourne centre et diamètre
         return None, None
+
+    
+    
 
     def calculate_position(self, center, radius):
         """Calcule la position X, Y, et Z à partir de la détection de la balle."""
@@ -151,3 +149,7 @@ class Cam:
         """Libère les ressources de la caméra."""
         self._cap.release()
         cv2.destroyAllWindows()
+
+    def display_loop(self, stop_event):
+        while not stop_event.is_set():
+            self.display()
