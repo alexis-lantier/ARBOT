@@ -1,6 +1,7 @@
 from Machine import Machine
 from threading import Thread, Event
 import keyboard
+import time
 
 class Application:
 
@@ -28,10 +29,6 @@ class Application:
         while True:
             self.Regulation()
 
-
-            # print("pos X :",self._machine._ball._XPosition)
-            # print("pos Y :",self._machine._ball._YPosition)
-            # print("pos Z :",self._machine._ball._ZPosition)
             if keyboard.is_pressed('q'):
                 print("Arrêt demandé par l'utilisateur.")
                 stop_event.set()
@@ -60,30 +57,31 @@ class Application:
 
 
     def Test(self):
+        print("\n=== MENU MANUEL ===")
+        print("Utilise les touches suivantes pour contrôler :")
+        print("z : ^ PHI")
+        print("e : > THETA")
+        print("r : w HEIGHT")
+        print("s : v PHI")
+        print("d : < THETA")
+        print("f : - HEIGHT")
+        print("q : Quitter le menu")
 
         while True:
-
-            self.Afficher_menu(
-                A=self._machine.GetAnglePhi(),
-                B=self._machine.GetAngleTheta(),
-                C=self._machine.GetHeight(),
-            )
-            choix = input("Ton choix : ")
-
-            if choix == "1":
+            if keyboard.is_pressed('up'):
                 self._machine._plate.MoveAxisPhi(self._machine.GetAnglePhi() + 1)
-            elif choix == "2":
+            elif keyboard.is_pressed('right'):
                 self._machine._plate.MoveAxisTheta(self._machine.GetAngleTheta() + 1)
-            elif choix == "3":
+            elif keyboard.is_pressed('w'):
                 self._machine._plate.MoveAxisHeigh(self._machine.GetHeight() + 1)
-            elif choix == "4":
+            elif keyboard.is_pressed('down'):
                 self._machine._plate.MoveAxisPhi(self._machine.GetAnglePhi() - 1)
-            elif choix == "5":
+            elif keyboard.is_pressed('left'):
                 self._machine._plate.MoveAxisTheta(self._machine.GetAngleTheta() - 1)
-            elif choix == "6":
+            elif keyboard.is_pressed('s'):
                 self._machine._plate.MoveAxisHeigh(self._machine.GetHeight() - 1)
-            elif choix == "7":
+            elif keyboard.is_pressed('q'):
                 print("Fermeture du menu. À bientôt !")
                 break
-            else:
-                print("Choix invalide, réessaie.")
+
+            time.sleep(0.1)  # Pour éviter de saturer le CPU et répéter trop vite

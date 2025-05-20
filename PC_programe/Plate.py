@@ -6,6 +6,7 @@ from scipy.optimize import fsolve
 
 MIN_H = 51.9
 MAX_H = 106.4
+DEBUG = False
 
 
 class Plate:
@@ -52,10 +53,10 @@ class Plate:
             self._axisB._motor.getAngle(),
             self._axisC._motor.getAngle(),
         )
-
-        print(
-            f"Axis A height: {self._axisA._height}, Axis B height: {self._axisB._height}, Axis C height: {self._axisC._height}"
-        )
+        if DEBUG:
+            print(
+                f"Axis A height: {self._axisA._height}, Axis B height: {self._axisB._height}, Axis C height: {self._axisC._height}"
+            )
 
     def CalculateHeightBasedOnAngle(self, phi_val, theta_val):
         MIN_H_FOR_ANGLE = 50.9
@@ -103,7 +104,9 @@ class Plate:
             )
             if ier == 1:
                 h1, h2, h3 = solution
-                print(f"Calculated heights: h1={h1:.2f}, h2={h2:.2f}, h3={h3:.2f}")
+                if DEBUG:
+                    print(f"Calculated heights: h1={h1:.2f}, h2={h2:.2f}, h3={h3:.2f}")
+                    
                 return h1, h2, h3
 
     def MoveAxisPhi(self, angle):
