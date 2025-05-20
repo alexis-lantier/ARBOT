@@ -18,7 +18,7 @@ class MotorTester:
         0x00: "Aucun code"
     }
 
-    def __init__(self, port='COM7', baudrate=115200):
+    def __init__(self, port='COM5', baudrate=115200):
         try:
             self.ser = serial.Serial(
                 port=port,
@@ -109,7 +109,7 @@ class MotorTester:
 
 if __name__ == "__main__":
     try:
-        tester = MotorTester(port='COM7', baudrate=115200)
+        tester = MotorTester(port='COM5', baudrate=115200)
         time.sleep(1)
 
         # Vide le buffer d'entrée et de sortie
