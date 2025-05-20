@@ -1,9 +1,7 @@
 #include "driver/uart.h"
 #include "driver/gpio.h"
-#include "esp_timer.h"
-#include <string.h>
-#include <stdio.h>
 #include <math.h>
+#include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -44,19 +42,13 @@
 typedef struct {
     gpio_num_t stepPin;
     gpio_num_t dirPin;
+    int8_t angle;
     int position;
     int target;
     bool dir;
 } StepperMotor;
 
-typedef struct {
-    int8_t angle1;
-    int8_t angle2;
-    int8_t angle3;
-} motor_angles_t;
-
 // --- VARIABLES GLOBALES ---
-StepperMotor motors[MOTOR_COUNT];
 static const gpio_num_t step_pins[MOTOR_COUNT] = {MOTOR1_STEP_PIN, MOTOR2_STEP_PIN, MOTOR3_STEP_PIN};
 static const gpio_num_t dir_pins[MOTOR_COUNT]  = {MOTOR1_DIR_PIN,  MOTOR2_DIR_PIN,  MOTOR3_DIR_PIN};
 
@@ -98,7 +90,7 @@ int angle_to_steps(float angle) {
 }
 
 // --- MOTEURS ---
-void motors_init(void) {
+void motors_init(StepperMotor *motors) {
     for (int i = 0; i < MOTOR_COUNT; ++i) {
         motors[i].stepPin = step_pins[i];
         motors[i].dirPin = dir_pins[i];
@@ -108,7 +100,7 @@ void motors_init(void) {
     }
 }
 
-void motors_begin(void) {
+void motors_begin(StepperMotor *motors) {
     for (int i = 0; i < MOTOR_COUNT; ++i) {
         gpio_set_direction(motors[i].stepPin, GPIO_MODE_OUTPUT);
         gpio_set_direction(motors[i].dirPin, GPIO_MODE_OUTPUT);
@@ -127,17 +119,14 @@ bool motor_tick(StepperMotor* motor) {
     return true;
 }
 
-// --- SYNCHRONOUS MOVE ---
-void sync_move_to_targets(int targets[3]) {
+void sync_move_to_targets(StepperMotor *motors){
     int distances[MOTOR_COUNT] = {0};
     int totalSteps = 0;
     float counters[MOTOR_COUNT] = {0};
 
+    // Calculer les distances et le nombre total de pas à effectuer
     for (int i = 0; i < MOTOR_COUNT; ++i) {
-        motors[i].target = targets[i];
-        motors[i].dir = (targets[i] > motors[i].position);
-        gpio_set_level(motors[i].dirPin, motors[i].dir ? 1 : 0);
-        distances[i] = abs(targets[i] - motors[i].position);
+        distances[i] = abs(motors[i].target - motors[i].position);
         if (distances[i] > totalSteps) totalSteps = distances[i];
     }
 
@@ -150,25 +139,33 @@ void sync_move_to_targets(int targets[3]) {
                 counters[i] -= 1.0f;
             }
         }
-        esp_rom_delay_us(get_ramp_delay(step, totalSteps));
+        // Rampe individuelle par moteur
+        // Pour faire la ramp, le plus petit délai est appliquer ce tour
+        int min_delay = STEP_DELAY_MAX_US;
+        for (int i = 0; i < MOTOR_COUNT; ++i) {
+            int ramp = distances[i] < STEP_RAMP ? distances[i] : STEP_RAMP;
+            int delay;
+            if (step < ramp)
+                delay = STEP_DELAY_MAX_US - (STEP_DELAY_MAX_US - STEP_DELAY_MIN_US) * step / ramp;
+            else if (step > totalSteps - ramp)
+                delay = STEP_DELAY_MAX_US - (STEP_DELAY_MAX_US - STEP_DELAY_MIN_US) * (totalSteps - step) / ramp;
+            else
+                delay = STEP_DELAY_MIN_US;
+            if (delay < min_delay) min_delay = delay;
+        }
+        esp_rom_delay_us(min_delay);
     }
-}
-
-// --- TIMER ---
-static volatile bool timer_flag = false;
-void IRAM_ATTR on_timer(void* arg) { timer_flag = true; }
-void timer_init_periodic(uint32_t us_period) {
-    const esp_timer_create_args_t timer_args = {
-        .callback = &on_timer,
-        .name = "main_timer"
-    };
-    esp_timer_handle_t periodic_timer;
-    esp_timer_create(&timer_args, &periodic_timer);
-    esp_timer_start_periodic(periodic_timer, us_period);
 }
 
 // --- MAIN ---
 void app_main(void) {
+    main_state_t state = STATE_IDLE;
+    uint8_t uart_buffer[BUFFER_SIZE] = {0};
+    uint8_t frame[TRAME_SIZE] = {0};
+    size_t frame_index = 0;
+    StepperMotor motors[MOTOR_COUNT] = {0};
+
+
     // UART init
     uart_config_t uart_config = {
         .baud_rate = UART_BAUD_RATE,
@@ -182,19 +179,8 @@ void app_main(void) {
     uart_driver_install(UART_NUM, BUFFER_SIZE * 2, 0, 0, NULL, 0);
 
     // Moteurs
-    motors_init();
-    motors_begin();
-
-    // Timer 10ms
-    timer_init_periodic(10000);
-
-    // Machine d'état
-    main_state_t state = STATE_IDLE;
-    uint8_t uart_buffer[BUFFER_SIZE] = {0};
-    uint8_t frame[TRAME_SIZE] = {0};
-    size_t frame_index = 0;
-    motor_angles_t motor_angles;
-    int targets[3] = {0};
+    motors_init(motors);
+    motors_begin(motors);
 
     while (1) {
         switch (state) {
@@ -229,21 +215,32 @@ void app_main(void) {
             case STATE_VALIDATE_FRAME: {
                 uint8_t checksum = calculate_checksum(frame, 4);
                 if (checksum == frame[TRAME_SIZE - 1]) {
-                    motor_angles.angle1 = (int8_t)frame[1];
-                    motor_angles.angle2 = (int8_t)frame[2];
-                    motor_angles.angle3 = (int8_t)frame[3];
-                    if (motor_angles.angle1 >= ANGLE_MIN && motor_angles.angle1 <= ANGLE_MAX &&
-                        motor_angles.angle2 >= ANGLE_MIN && motor_angles.angle2 <= ANGLE_MAX &&
-                        motor_angles.angle3 >= ANGLE_MIN && motor_angles.angle3 <= ANGLE_MAX) {
+                    // Parse angles
+                    int8_t angle_motor1 = (int8_t)frame[1];
+                    int8_t angle_motor2 = (int8_t)frame[2];
+                    int8_t angle_motor3 = (int8_t)frame[3];
+
+                    // Check angles limites
+                    if (angle_motor1 >= ANGLE_MIN && angle_motor1 <= ANGLE_MAX &&
+                        angle_motor2 >= ANGLE_MIN && angle_motor2 <= ANGLE_MAX &&
+                        angle_motor3 >= ANGLE_MIN && angle_motor3 <= ANGLE_MAX) {
                         send_uart_status_code(MODE_OK, CODE_OK);
-                        targets[0] = motor_angles.angle1;
-                        targets[1] = motor_angles.angle2;
-                        targets[2] = motor_angles.angle3;
-                        state = STATE_MOVE_MOTORS;
                     } else {
                         send_uart_status_code(MODE_ERROR, CODE_ERROR_ANGLE);
                         state = STATE_IDLE;
+                        break;
                     }
+
+                    // Actualiser les moteurs
+                    for(int i = 0; i < MOTOR_COUNT; ++i) {
+                        motors[i].angle = (int8_t)frame[i + 1];
+                        motors[i].target = angle_to_steps(motors[i].angle);
+                        motors[i].dir = (motors[i].target > motors[i].position);
+                        gpio_set_level(motors[i].dirPin, motors[i].dir ? 1 : 0);
+                    }
+
+                    // Passer à l'état de mouvement
+                    state = STATE_MOVE_MOTORS;
                 } else {
                     send_uart_status_code(MODE_ERROR, CODE_ERROR_CHECKSUM);
                     state = STATE_IDLE;
@@ -252,11 +249,15 @@ void app_main(void) {
             }
 
             case STATE_MOVE_MOTORS:
-                sync_move_to_targets(targets);
+                sync_move_to_targets(motors);
                 state = STATE_IDLE;
                 break;
 
             case STATE_ERROR:
+                state = STATE_IDLE;
+                break;
+
+            default:
                 state = STATE_IDLE;
                 break;
         }
