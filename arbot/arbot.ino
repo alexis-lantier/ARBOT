@@ -12,13 +12,13 @@
 #define TRAME_SIZE (5)
 
 #define MOTOR_COUNT 3
-#define MOTOR1_STEP_PIN 7
-#define MOTOR1_DIR_PIN  8
-#define MOTOR2_STEP_PIN 9
-#define MOTOR2_DIR_PIN  10
-#define MOTOR3_STEP_PIN 11
-#define MOTOR3_DIR_PIN  12
-#define ENABLE_PIN      6
+#define MOTOR1_STEP_PIN 37
+#define MOTOR1_DIR_PIN  38
+#define MOTOR2_STEP_PIN 39
+#define MOTOR2_DIR_PIN  40
+#define MOTOR3_STEP_PIN 41
+#define MOTOR3_DIR_PIN  42
+#define ENABLE_PIN      36
 
 #define STEP_ANGLE          (0.45f)
 #define STEP_DELAY_MIN_US   (500)
