@@ -1,0 +1,121 @@
+#include <Arduino.h>
+
+// Brochage ESP32
+#define STEP1 18
+#define DIR1 5
+#define STEP2 19
+#define DIR2 21
+#define STEP3 22
+#define DIR3 4
+#define ENABLE_PIN 2
+
+const float stepAngle = 0.45; // deg/pas
+const float pi = 3.14159265;
+const int ramp_steps = 50;
+const int delay_min = 500;
+const int delay_max = 1200;
+
+float alpha1 = 0;
+float alpha2 = 120 * pi / 180.0;
+float alpha3 = 240 * pi / 180.0;
+
+class StepperMotor {
+public:
+  int stepPin, dirPin;
+  int position = 0;
+  int target = 0;
+  bool dir = true;
+
+  StepperMotor(int step, int dir) : stepPin(step), dirPin(dir) {}
+  
+  void begin() {
+    pinMode(stepPin, OUTPUT);
+    pinMode(dirPin, OUTPUT);
+  }
+
+  void prepareMoveTo(int newTarget) {
+    target = newTarget;
+    dir = (target > position);
+    digitalWrite(dirPin, dir ? HIGH : LOW);
+  }
+
+  bool tick() {
+    if (position == target) return false;
+    digitalWrite(stepPin, HIGH);
+    delayMicroseconds(2);
+    digitalWrite(stepPin, LOW);
+    delayMicroseconds(2);
+    position += dir ? 1 : -1;
+    return true;
+  }
+
+  bool isMoving() {
+    return position != target;
+  }
+};
+
+StepperMotor motor1(STEP1, DIR1);
+StepperMotor motor2(STEP2, DIR2);
+StepperMotor motor3(STEP3, DIR3);
+
+int angleToSteps(float angle) {
+  return round(angle / stepAngle);
+}
+
+int getRampDelay(int stepIndex, int totalSteps) {
+  if (stepIndex < ramp_steps)
+    return delay_max - (delay_max - delay_min) * stepIndex / ramp_steps;
+  else if (stepIndex > totalSteps - ramp_steps)
+    return delay_max - (delay_max - delay_min) * (totalSteps - stepIndex) / ramp_steps;
+  return delay_min;
+}
+
+void syncMoveAllTo(int t1, int t2, int t3) {
+  motor1.prepareMoveTo(t1);
+  motor2.prepareMoveTo(t2);
+  motor3.prepareMoveTo(t3);
+
+  int totalSteps = max(abs(motor1.target - motor1.position),
+                    max(abs(motor2.target - motor2.position), abs(motor3.target - motor3.position)));
+
+  for (int step = 0; step < totalSteps; step++) {
+    if (motor1.isMoving()) motor1.tick();
+    if (motor2.isMoving()) motor2.tick();
+    if (motor3.isMoving()) motor3.tick();
+    delayMicroseconds(getRampDelay(step, totalSteps));
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(ENABLE_PIN, OUTPUT);
+  digitalWrite(ENABLE_PIN, LOW); // activer moteurs
+
+  motor1.begin();
+  motor2.begin();
+  motor3.begin();
+}
+
+void loop() {
+  if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+
+    float theta_x = 0, theta_y = 0;
+
+    if (sscanf(input.c_str(), "%f %f", &theta_x, &theta_y) == 2) {
+      // Calcul des angles individuels (cinématique inverse)
+      float angle1 = theta_x * cos(alpha1) + theta_y * sin(alpha1);
+      float angle2 = theta_x * cos(alpha2) + theta_y * sin(alpha2);
+      float angle3 = theta_x * cos(alpha3) + theta_y * sin(alpha3);
+
+      // Conversion en pas
+      int s1 = angleToSteps(angle1);
+      int s2 = angleToSteps(angle2);
+      int s3 = angleToSteps(angle3);
+
+      // Mouvement synchronisé
+      syncMoveAllTo(s1, s2, s3);
+    }
+  }
+}

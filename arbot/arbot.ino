@@ -105,38 +105,34 @@ bool motor_tick(StepperMotor* motor) {
     return true;
 }
 
-void sync_move_to_targets(StepperMotor *motors){
-    int distances[MOTOR_COUNT] = {0};
-    int totalSteps = 0;
-    float counters[MOTOR_COUNT] = {0};
+int get_ramp_delay(int stepIndex, int totalSteps) {
+    if (stepIndex < STEP_RAMP)
+        return STEP_DELAY_MAX_US - (STEP_DELAY_MAX_US - STEP_DELAY_MIN_US) * stepIndex / STEP_RAMP;
+    else if (stepIndex > totalSteps - STEP_RAMP)
+        return STEP_DELAY_MAX_US - (STEP_DELAY_MAX_US - STEP_DELAY_MIN_US) * (totalSteps - stepIndex) / STEP_RAMP;
+    return STEP_DELAY_MIN_US;
+}
 
+void sync_move_all_to(StepperMotor *motors) {
+    int totalSteps = 0;
     for (int i = 0; i < MOTOR_COUNT; ++i) {
-        distances[i] = abs(motors[i].target - motors[i].position);
-        if (distances[i] > totalSteps) totalSteps = distances[i];
+        if (abs(motors[i].target - motors[i].position) > totalSteps)
+            totalSteps = abs(motors[i].target - motors[i].position);
+        motors[i].dir = (motors[i].target > motors[i].position);
+        digitalWrite(motors[i].dirPin, motors[i].dir ? HIGH : LOW);
     }
 
-    memset(counters, 0, sizeof(counters));
     for (int step = 0; step < totalSteps; ++step) {
         for (int i = 0; i < MOTOR_COUNT; ++i) {
-            counters[i] += (float)distances[i] / totalSteps;
-            if (counters[i] >= 1.0f) {
-                motor_tick(&motors[i]);
-                counters[i] -= 1.0f;
+            if (motors[i].position != motors[i].target) {
+                digitalWrite(motors[i].stepPin, HIGH);
+                delayMicroseconds(2);
+                digitalWrite(motors[i].stepPin, LOW);
+                delayMicroseconds(2);
+                motors[i].position += motors[i].dir ? 1 : -1;
             }
         }
-        int min_delay = STEP_DELAY_MAX_US;
-        for (int i = 0; i < MOTOR_COUNT; ++i) {
-            int ramp = distances[i] < STEP_RAMP ? distances[i] : STEP_RAMP;
-            int delay;
-            if (step < ramp)
-                delay = STEP_DELAY_MAX_US - (STEP_DELAY_MAX_US - STEP_DELAY_MIN_US) * step / ramp;
-            else if (step > totalSteps - ramp)
-                delay = STEP_DELAY_MAX_US - (STEP_DELAY_MAX_US - STEP_DELAY_MIN_US) * (totalSteps - step) / ramp;
-            else
-                delay = STEP_DELAY_MIN_US;
-            if (delay < min_delay) min_delay = delay;
-        }
-        delayMicroseconds(min_delay);
+        delayMicroseconds(get_ramp_delay(step, totalSteps));
     }
 }
 
@@ -212,7 +208,7 @@ void loop() {
         }
 
         case STATE_MOVE_MOTORS:
-            sync_move_to_targets(motors);
+            sync_move_all_to(motors);
             state = STATE_IDLE;
             break;
 
