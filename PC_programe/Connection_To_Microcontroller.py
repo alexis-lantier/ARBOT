@@ -45,7 +45,7 @@ class ConnectionToMicrocontroller:
 
     @staticmethod
     def to_uint8(val):
-        return val & 0xFF
+        return int(val) & 0xFF
 
     def send_angles(self, angle1, angle2, angle3):
         pass

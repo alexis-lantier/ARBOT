@@ -8,7 +8,7 @@ class Application:
         self._machine = Machine()
 
     def Initialisation(self):
-        self._machine._plate.MoveAxisHeight(50.9)
+        self._machine._plate.MoveAxisHeigh(50.9)
         
     def Regulation(self):
         self._machine._ball.Update()
