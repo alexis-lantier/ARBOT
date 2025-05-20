@@ -18,7 +18,7 @@ class ConnectionToMicrocontroller:
         0x00: "Aucun code"
     }
 
-    def __init__(self, port='COM7', baudrate=115200):
+    def __init__(self, port='COM5', baudrate=115200):
         try:
             self.ser = serial.Serial(
                 port=port,
@@ -49,19 +49,19 @@ class ConnectionToMicrocontroller:
 
     def send_angles(self, angle1, angle2, angle3):
         pass
-        # for idx, angle in enumerate([angle1, angle2, angle3], start=1):
-        #     if not (self.ANGLE_MIN <= angle <= self.ANGLE_MAX):
-        #         return 2  # Code d'erreur pour angle hors plage
-        # a1 = self.to_uint8(angle1)
-        # a2 = self.to_uint8(angle2)
-        # a3 = self.to_uint8(angle3)
-        # checksum = self.to_uint8((self.MOTMAGIC + a1 + a2 + a3) % 256)
-        # frame = struct.pack('>BBBBB', self.MOTMAGIC, a1, a2, a3, checksum)
-        # if self.ser and self.ser.is_open:
-        #     self.ser.write(frame)
-        #     return 0  # Succès
-        # else:
-        #     return 3  # Port série non ouvert
+        for idx, angle in enumerate([angle1, angle2, angle3], start=1):
+            if not (self.ANGLE_MIN <= angle <= self.ANGLE_MAX):
+                return 2  # Code d'erreur pour angle hors plage
+        a1 = self.to_uint8(angle1)
+        a2 = self.to_uint8(angle2)
+        a3 = self.to_uint8(angle3)
+        checksum = self.to_uint8((self.MOTMAGIC + a1 + a2 + a3) % 256)
+        frame = struct.pack('>BBBBB', self.MOTMAGIC, a1, a2, a3, checksum)
+        if self.ser and self.ser.is_open:
+            self.ser.write(frame)
+            return 0  # Succès
+        else:
+            return 3  # Port série non ouvert
 
     def read_response(self):
         start_time = time.time()
@@ -83,4 +83,28 @@ class ConnectionToMicrocontroller:
                 else:
                     return 7  # Trame inconnue
             if time.time() - start_time > 2:
-                return 8  # Timeout    
+                return 8  # Timeout
+            
+if __name__ == "__main__":
+    import time
+
+    try:
+        conn = ConnectionToMicrocontroller(port='COM5', baudrate=115200)
+        time.sleep(1)
+
+        if conn.ser:
+            conn.ser.reset_input_buffer()
+            conn.ser.reset_output_buffer()
+            time.sleep(0.1)
+
+        conn.send_angles(10, 20, 30)
+        response = conn.read_response()
+        print(f"Réponse reçue : {response} ({ConnectionToMicrocontroller.ERROR_CODES.get(response, 'Code inconnu')})")
+
+    except serial.SerialException as e:
+        print(f"Erreur série : {e}")
+    except Exception as e:
+        print(f"Erreur inattendue : {e}")
+    finally:
+        if 'conn' in locals():
+            conn.close()
