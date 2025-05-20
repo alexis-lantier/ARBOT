@@ -10,7 +10,6 @@
 // --- CONFIGURATION ---
 #define UART_TX (GPIO_NUM_43)
 #define UART_RX (GPIO_NUM_44)
-#define UART_PORT_NUM (1)
 #define UART_BAUD_RATE (115200)
 #define UART_NUM (UART_NUM_1)
 #define BUFFER_SIZE (128)
@@ -83,7 +82,7 @@ void send_uart_status_code(uint8_t mode, uint8_t code) {
     error_frame[1] = mode;
     error_frame[2] = code;
     error_frame[3] = calculate_checksum(error_frame, 3);
-    uart_write_bytes(UART_PORT_NUM, (const char *)error_frame, sizeof(error_frame));
+    uart_write_bytes(UART_NUM, (const char *)error_frame, sizeof(error_frame));
 }
 
 int get_ramp_delay(int stepIndex, int totalSteps) {
@@ -137,7 +136,7 @@ void sync_move_to_targets(int targets[3]) {
     for (int i = 0; i < MOTOR_COUNT; ++i) {
         motors[i].target = targets[i];
         motors[i].dir = (targets[i] > motors[i].position);
-        gpio_set_level(motors[i].dirPin, motors[i].dir ? 0 : 1);
+        gpio_set_level(motors[i].dirPin, motors[i].dir ? 1 : 0);
         distances[i] = abs(targets[i] - motors[i].position);
         if (distances[i] > totalSteps) totalSteps = distances[i];
     }
@@ -179,7 +178,7 @@ void app_main(void) {
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
     };
     uart_param_config(UART_NUM, &uart_config);
-    uart_set_pin(UART_PORT_NUM, UART_TX, UART_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    uart_set_pin(UART_NUM, UART_TX, UART_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     uart_driver_install(UART_NUM, BUFFER_SIZE * 2, 0, 0, NULL, 0);
 
     // Moteurs
@@ -198,16 +197,13 @@ void app_main(void) {
     int targets[3] = {0};
 
     while (1) {
-        if (!timer_flag) continue;
-        timer_flag = false;
-
         switch (state) {
             case STATE_IDLE:
                 state = STATE_UART_RECEIVE;
                 break;
 
             case STATE_UART_RECEIVE: {
-                int len = uart_read_bytes(UART_PORT_NUM, uart_buffer, BUFFER_SIZE, 0);
+                int len = uart_read_bytes(UART_NUM, uart_buffer, BUFFER_SIZE, pdMS_TO_TICKS(10));
                 for (int i = 0; i < len; i++) {
                     uint8_t byte = uart_buffer[i];
                     if (frame_index == 0 && byte != MOTSMAGIC) continue;

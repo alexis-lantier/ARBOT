@@ -61,7 +61,6 @@ class MotorTester:
         print(f"Envoyé: {[hex(b) for b in frame]}")
 
     def read_response(self):
-        start_time = time.time()
         while True:
             if self.ser.in_waiting >= 4:
                 response = self.ser.read(4)
@@ -90,10 +89,6 @@ class MotorTester:
                 else:
                     print(f"Trame inconnue, mode = {hex(mode_rec)}, code = {hex(code_rec)}")
                     continue
-            # Timeout pour éviter boucle infinie
-            if time.time() - start_time > 1:
-                print("Timeout lors de la lecture de la réponse.")
-                break
 
     def test_angles(self, angle1, angle2, angle3, N=10):
         self.ser.reset_input_buffer()
@@ -122,7 +117,7 @@ if __name__ == "__main__":
         tester.ser.reset_output_buffer()
         time.sleep(0.1)
 
-        tester.send_angles(40, 40, 40)
+        tester.send_angles(120, 40, 40)
         tester.read_response()
 
     except serial.SerialException as e:
