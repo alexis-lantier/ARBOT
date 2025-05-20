@@ -111,6 +111,7 @@ void motors_begin(StepperMotor *motors) {
 
 bool motor_tick(StepperMotor* motor) {
     if (motor->position == motor->target) return false;
+    gpio_set_level(motor->dirPin, motor->dir ? 1 : 0); // <-- Ajoute cette ligne
     gpio_set_level(motor->stepPin, 1);
     esp_rom_delay_us(2);
     gpio_set_level(motor->stepPin, 0);
@@ -216,14 +217,15 @@ void app_main(void) {
                 uint8_t checksum = calculate_checksum(frame, 4);
                 if (checksum == frame[TRAME_SIZE - 1]) {
                     // Parse angles
-                    int8_t angle_motor1 = (int8_t)frame[1];
-                    int8_t angle_motor2 = (int8_t)frame[2];
-                    int8_t angle_motor3 = (int8_t)frame[3];
+                    int8_t angle[MOTOR_COUNT] = {0};
+                    for (int i = 0; i < MOTOR_COUNT; ++i) {
+                        angle[i] = (int8_t)frame[i + 1]; ///// ?????????
+                    }
 
                     // Check angles limites
-                    if (angle_motor1 >= ANGLE_MIN && angle_motor1 <= ANGLE_MAX &&
-                        angle_motor2 >= ANGLE_MIN && angle_motor2 <= ANGLE_MAX &&
-                        angle_motor3 >= ANGLE_MIN && angle_motor3 <= ANGLE_MAX) {
+                    if (angle[0] >= ANGLE_MIN && angle[0] <= ANGLE_MAX &&
+                        angle[1] >= ANGLE_MIN && angle[1] <= ANGLE_MAX &&
+                        angle[2] >= ANGLE_MIN && angle[2] <= ANGLE_MAX) {
                         send_uart_status_code(MODE_OK, CODE_OK);
                     } else {
                         send_uart_status_code(MODE_ERROR, CODE_ERROR_ANGLE);
@@ -233,10 +235,9 @@ void app_main(void) {
 
                     // Actualiser les moteurs
                     for(int i = 0; i < MOTOR_COUNT; ++i) {
-                        motors[i].angle = (int8_t)frame[i + 1];
+                        motors[i].angle = angle[i];
                         motors[i].target = angle_to_steps(motors[i].angle);
                         motors[i].dir = (motors[i].target > motors[i].position);
-                        gpio_set_level(motors[i].dirPin, motors[i].dir ? 1 : 0);
                     }
 
                     // Passer à l'état de mouvement
