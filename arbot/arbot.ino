@@ -1,5 +1,4 @@
-// ...en-tête...
-// filepath: main.c (à renommer en .ino pour Arduino IDE)
+// --- main.ino ---
 #include <Arduino.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -20,10 +19,13 @@
 #define MOTOR3_DIR_PIN  42
 #define ENABLE_PIN      36
 
-#define STEP_ANGLE          (0.45f)
-#define STEP_DELAY_MIN_US   (500)
-#define STEP_DELAY_MAX_US   (1200)
-#define STEP_RAMP           (45)
+#define MOTOR_STEP_ANGLE_DEG (1.8f)        // Step angle in degrees
+#define MICROSTEP_FACTOR      (4)          // 1/4 microstepping
+#define EFFECTIVE_STEP_ANGLE  (MOTOR_STEP_ANGLE_DEG / MICROSTEP_FACTOR)
+
+#define STEP_DELAY_MIN_US     (500)        // Fastest stepping delay
+#define STEP_DELAY_MAX_US     (1200)       // Slowest (for acceleration)
+#define STEP_RAMP             (45)         // Steps over which to accelerate/decelerate
 
 #define ANGLE_MAX 120
 #define ANGLE_MIN -120
@@ -72,7 +74,7 @@ void send_uart_status_code(uint8_t mode, uint8_t code) {
 }
 
 int angle_to_steps(float angle) {
-    return (int)roundf(angle / STEP_ANGLE);
+    return (int)roundf(angle / EFFECTIVE_STEP_ANGLE);
 }
 
 void motors_init(StepperMotor *motors) {
