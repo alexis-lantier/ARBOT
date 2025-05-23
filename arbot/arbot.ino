@@ -19,13 +19,11 @@
 #define MOTOR3_DIR_PIN  42
 #define ENABLE_PIN      36
 
-#define MOTOR_STEP_ANGLE_DEG    (1.8f)                                      // Step angle in degrees
-#define MICROSTEP_FACTOR        (4)                                         // 1/4 microstepping
-#define EFFECTIVE_STEP_ANGLE    (MOTOR_STEP_ANGLE_DEG / MICROSTEP_FACTOR)   // Effective step angle in degrees
+const float stepAngle = 0.45;
 
-#define STEP_DELAY_MIN_US   (200)   // Fastest stepping delay
-#define STEP_DELAY_MAX_US   (500)   // Slowest (for acceleration)
-#define STEP_RAMP           (45)    // Steps over which to accelerate/decelerate
+const int delay_min = 1000;
+const int delay_max = 2000;
+const int ramp_steps = 45;
 
 #define ANGLE_MAX 120
 #define ANGLE_MIN -120
@@ -74,7 +72,7 @@ void send_uart_status_code(uint8_t mode, uint8_t code) {
 }
 
 int angle_to_steps(float angle) {
-    return (int)roundf(angle / EFFECTIVE_STEP_ANGLE);
+    return round(angle / stepAngle);
 }
 
 void motors_init(StepperMotor *motors) {
@@ -100,26 +98,28 @@ bool motor_tick(StepperMotor* motor) {
     if (motor->position == motor->target) return false;
     digitalWrite(motor->dirPin, motor->dir ? HIGH : LOW);
     digitalWrite(motor->stepPin, HIGH);
-    delayMicroseconds(5);
+    delayMicroseconds(500);
     digitalWrite(motor->stepPin, LOW);
-    delayMicroseconds(5);
+    delayMicroseconds(500);
     motor->position += motor->dir ? 1 : -1;
     return true;
 }
 
-int get_ramp_delay(int stepIndex, int totalSteps) {
-    if (stepIndex < STEP_RAMP)
-        return STEP_DELAY_MAX_US - (STEP_DELAY_MAX_US - STEP_DELAY_MIN_US) * stepIndex / STEP_RAMP;
-    else if (stepIndex > totalSteps - STEP_RAMP)
-        return STEP_DELAY_MAX_US - (STEP_DELAY_MAX_US - STEP_DELAY_MIN_US) * (totalSteps - stepIndex) / STEP_RAMP;
-    return STEP_DELAY_MIN_US;
+int getRampDelay(int stepIndex, int totalSteps) {
+  if (stepIndex < ramp_steps)
+    return delay_max - (delay_max - delay_min) * stepIndex / ramp_steps;
+  else if (stepIndex > totalSteps - ramp_steps)
+    return delay_max - (delay_max - delay_min) * (totalSteps - stepIndex) / ramp_steps;
+  return delay_min;
 }
 
 void sync_move_all_to(StepperMotor *motors) {
     int totalSteps = 0;
     for (int i = 0; i < MOTOR_COUNT; ++i) {
-        if (abs(motors[i].target - motors[i].position) > totalSteps)
+        if (abs(motors[i].target - motors[i].position) > totalSteps){
             totalSteps = abs(motors[i].target - motors[i].position);
+        }
+        
         motors[i].dir = (motors[i].target > motors[i].position);
         digitalWrite(motors[i].dirPin, motors[i].dir ? HIGH : LOW);
     }
@@ -128,13 +128,13 @@ void sync_move_all_to(StepperMotor *motors) {
         for (int i = 0; i < MOTOR_COUNT; ++i) {
             if (motors[i].position != motors[i].target) {
                 digitalWrite(motors[i].stepPin, HIGH);
-                delayMicroseconds(5);
+                delayMicroseconds(500);
                 digitalWrite(motors[i].stepPin, LOW);
-                delayMicroseconds(5);
+                delayMicroseconds(500);
                 motors[i].position += motors[i].dir ? 1 : -1;
             }
         }
-        delayMicroseconds(get_ramp_delay(step, totalSteps));
+        delayMicroseconds(getRampDelay(step, totalSteps));
     }
 }
 
