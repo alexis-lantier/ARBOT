@@ -30,9 +30,9 @@ class Machine:
     def RegulationBounce(self):
             if self._ball._cam._radius is None:
                 return
-            if self._ball._cam._radius > 22 and self._bounceAutorised:
+            if self._ball._cam._position.z > 293 and self._bounceAutorised:
                 self._bounceAutorised = False
                 self._plate.MakeOneBounce()
 
-            elif self._ball._cam._radius <= 18:
+            elif self._ball._cam._position.z <= 365.6:
                 self._bounceAutorised = True

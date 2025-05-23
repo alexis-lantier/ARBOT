@@ -31,11 +31,16 @@ class Cam:
         self._lower_orange = np.array([5, 150, 150])
         self._upper_orange = np.array([25, 255, 255])
 
-        # Calibration hauteur
-        diam_px = np.array([94, 70, 56, 39, 30])  # Diamètre en pixels
-        haut = np.array([0, 10, 50, 100, 200])  # Hauteur réelle correspondante en mm
-        coefficients = np.polyfit(diam_px, haut, 2)
-        self._poly = np.poly1d(coefficients)
+       
+
+    def get_height(self):
+        a= -0.0004
+        b= 0.1338
+        c= -17.822
+        d= 852.27
+        x= self._radius*2
+        return a*x**3 + b*x**2 + c*x + d
+           
 
    
     
@@ -56,7 +61,8 @@ class Cam:
         """Calcule la position X, Y, et Z à partir de la détection de la balle."""
         if center and radius:
             x, y = center
-            z = self._poly(2 * radius)  # Conversion diamètre -> hauteur en mm
+            z = self.get_height()  # Conversion diamètre -> hauteur en mm
+            _position = Vector(x, y, z)
             return x, y, z
         return None, None, None
 
