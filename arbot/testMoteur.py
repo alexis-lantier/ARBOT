@@ -117,7 +117,7 @@ if __name__ == "__main__":
         tester.ser.reset_output_buffer()
         time.sleep(0.1)
 
-        tester.send_angles(10, 20, 30)
+        tester.send_angles(45, 0, 0)
         tester.read_response()
 
     except serial.SerialException as e:

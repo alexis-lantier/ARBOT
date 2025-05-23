@@ -19,13 +19,13 @@
 #define MOTOR3_DIR_PIN  42
 #define ENABLE_PIN      36
 
-#define MOTOR_STEP_ANGLE_DEG (1.8f)        // Step angle in degrees
-#define MICROSTEP_FACTOR      (4)          // 1/4 microstepping
-#define EFFECTIVE_STEP_ANGLE  (MOTOR_STEP_ANGLE_DEG / MICROSTEP_FACTOR)
+#define MOTOR_STEP_ANGLE_DEG    (1.8f)                                      // Step angle in degrees
+#define MICROSTEP_FACTOR        (4)                                         // 1/4 microstepping
+#define EFFECTIVE_STEP_ANGLE    (MOTOR_STEP_ANGLE_DEG / MICROSTEP_FACTOR)   // Effective step angle in degrees
 
-#define STEP_DELAY_MIN_US     (500)        // Fastest stepping delay
-#define STEP_DELAY_MAX_US     (1200)       // Slowest (for acceleration)
-#define STEP_RAMP             (45)         // Steps over which to accelerate/decelerate
+#define STEP_DELAY_MIN_US   (200)   // Fastest stepping delay
+#define STEP_DELAY_MAX_US   (500)   // Slowest (for acceleration)
+#define STEP_RAMP           (45)    // Steps over which to accelerate/decelerate
 
 #define ANGLE_MAX 120
 #define ANGLE_MIN -120
@@ -100,9 +100,9 @@ bool motor_tick(StepperMotor* motor) {
     if (motor->position == motor->target) return false;
     digitalWrite(motor->dirPin, motor->dir ? HIGH : LOW);
     digitalWrite(motor->stepPin, HIGH);
-    delayMicroseconds(2);
+    delayMicroseconds(5);
     digitalWrite(motor->stepPin, LOW);
-    delayMicroseconds(2);
+    delayMicroseconds(5);
     motor->position += motor->dir ? 1 : -1;
     return true;
 }
@@ -128,9 +128,9 @@ void sync_move_all_to(StepperMotor *motors) {
         for (int i = 0; i < MOTOR_COUNT; ++i) {
             if (motors[i].position != motors[i].target) {
                 digitalWrite(motors[i].stepPin, HIGH);
-                delayMicroseconds(2);
+                delayMicroseconds(5);
                 digitalWrite(motors[i].stepPin, LOW);
-                delayMicroseconds(2);
+                delayMicroseconds(5);
                 motors[i].position += motors[i].dir ? 1 : -1;
             }
         }
