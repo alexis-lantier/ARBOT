@@ -1,14 +1,14 @@
 // Brochage ESP32
-#define STEP1 18
-#define DIR1 5
+#define STEP1 37
+#define DIR1 38
 
-#define STEP2 19
-#define DIR2 21
+#define STEP2 39
+#define DIR2 40
 
-#define STEP3 22
-#define DIR3 4  // Remplacé GPIO23 par GPIO4 (D4)
+#define STEP3 41
+#define DIR3 42
 
-#define ENABLE_PIN 2  // ENABLE déplacé sur une autre pin disponible
+#define ENABLE_PIN 36
 
 // Quart de pas = 0.45° par pas
 const float stepAngle = 0.45;  // Quarter-step mode activé physiquement (M0 = LOW, M1 = HIGH, M2 = LOW)
