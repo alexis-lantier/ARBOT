@@ -52,11 +52,11 @@ class Machine:
         # Normalisation de z pour avoir un facteur entre 0 (haut) et 1 (sol)
         z_max = 365.6
         z = self._ball._cam._position.z
-        vx = self._ball._cam._speed.x
-        vy = self._ball._cam._speed.y
+        vx = self._ball._cam._ballSpeed.x
+        vy = self._ball._cam._ballSpeed.y
         angle_max = 30.0
 
-        z_normalisé = max(0.0, min(1.0, 1 - z / z_max))
+        z_normalisé = 0.5 #max(0.0, min(1.0, 1 - z / z_max))
 
         # Facteur de gain sur l'inclinaison
         facteur = angle_max * z_normalisé
