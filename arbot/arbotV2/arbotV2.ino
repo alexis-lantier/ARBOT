@@ -1,14 +1,60 @@
-// Brochage ESP32
-#define STEP1 37
-#define DIR1 38
+// --- main.ino ---
+#include <Arduino.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <math.h>
+#include <string.h>
 
-#define STEP2 39
-#define DIR2 40
+// --- CONFIGURATION ---
+#define UART_BAUD_RATE (115200)
+#define BUFFER_SIZE (128)
+#define TRAME_SIZE (5)
 
-#define STEP3 41
-#define DIR3 42
+#define MOTOR_COUNT 3
+#define MOTOR1_STEP_PIN 37
+#define MOTOR1_DIR_PIN  38
+#define MOTOR2_STEP_PIN 39
+#define MOTOR2_DIR_PIN  40
+#define MOTOR3_STEP_PIN 41
+#define MOTOR3_DIR_PIN  42
+#define ENABLE_PIN      36
 
-#define ENABLE_PIN 36
+#define ANGLE_MAX 120
+#define ANGLE_MIN -120
+
+#define MOTSMAGIC 0x79
+#define MODE_ERROR 0x01
+#define MODE_OK 0x00
+#define CODE_ERROR_DEPASS 0x05
+#define CODE_ERROR_CHECKSUM 0x04
+#define CODE_ERROR_ANGLE 0x03
+#define CODE_OK 0x01
+
+static const uint8_t step_pins[MOTOR_COUNT] = {MOTOR1_STEP_PIN, MOTOR2_STEP_PIN, MOTOR3_STEP_PIN};
+static const uint8_t dir_pins[MOTOR_COUNT]  = {MOTOR1_DIR_PIN,  MOTOR2_DIR_PIN,  MOTOR3_DIR_PIN};
+
+typedef enum {
+    STATE_IDLE,
+    STATE_UART_RECEIVE,
+    STATE_VALIDATE_FRAME,
+    STATE_MOVE_MOTORS,
+    STATE_ERROR
+} main_state_t;
+
+static uint8_t calculate_checksum(uint8_t *data, size_t len) {
+    uint8_t checksum = 0;
+    for (size_t i = 0; i < len; i++) checksum += data[i];
+    return checksum;
+}
+
+void send_uart_status_code(uint8_t mode, uint8_t code) {
+    uint8_t error_frame[4];
+    error_frame[0] = MOTSMAGIC;
+    error_frame[1] = mode;
+    error_frame[2] = code;
+    error_frame[3] = calculate_checksum(error_frame, 3);
+    Serial.write(error_frame, 4);
+}
 
 // Quart de pas = 0.45° par pas
 const float stepAngle = 0.45;  // Quarter-step mode activé physiquement (M0 = LOW, M1 = HIGH, M2 = LOW)
@@ -60,9 +106,9 @@ public:
 };
 
 // Déclaration des moteurs
-StepperMotor motor1(STEP1, DIR1);
-StepperMotor motor2(STEP2, DIR2);
-StepperMotor motor3(STEP3, DIR3);
+StepperMotor motor1(MOTOR1_STEP_PIN, MOTOR1_DIR_PIN);
+StepperMotor motor2(MOTOR2_STEP_PIN, MOTOR2_DIR_PIN);
+StepperMotor motor3(MOTOR3_STEP_PIN, MOTOR3_DIR_PIN);
 
 int getRampDelay(int stepIndex, int totalSteps) {
   if (stepIndex < ramp_steps) {
@@ -96,62 +142,7 @@ void rampedMove(StepperMotor& motor, int target) {
   }
 }
 
-// --- UART reception & parsing ---
-#define UART_BAUD 115200
-#define UART Serial
-
-String uartBuffer = "";
-
-uint8_t calcCRC(const String& data) {
-  uint8_t crc = 0;
-  for (size_t i = 0; i < data.length(); ++i) {
-    crc += (uint8_t)data[i];
-  }
-  return crc;
-}
-
-#define UART_BAUD 115200
-#define UART Serial
-#define MOTMAGIC 0xA5
-
-void handleUART() {
-  static uint8_t buf[5];
-  static uint8_t idx = 0;
-
-  while (UART.available()) {
-    uint8_t b = UART.read();
-    if (idx == 0 && b != MOTMAGIC) continue; // attend magic
-    buf[idx++] = b;
-    if (idx == 5) {
-      uint8_t crc = (buf[0] + buf[1] + buf[2] + buf[3]) & 0xFF;
-      if (crc == buf[4]) {
-        float a1 = buf[1];
-        float a2 = buf[2];
-        float a3 = buf[3];
-        int s1 = angleToSteps(a1);
-        int s2 = angleToSteps(a2);
-        int s3 = angleToSteps(a3);
-        motor1.prepareMoveTo(s1);
-        motor2.prepareMoveTo(s2);
-        motor3.prepareMoveTo(s3);
-        int totalSteps = max(abs(motor1.target - motor1.position), max(abs(motor2.target - motor2.position), abs(motor3.target - motor3.position)));
-        for (int step = 0; step < totalSteps; step++) {
-          if (motor1.isMoving()) motor1.tick();
-          if (motor2.isMoving()) motor2.tick();
-          if (motor3.isMoving()) motor3.tick();
-          delayMicroseconds(getRampDelay(step, totalSteps));
-        }
-        UART.write("OK\n");
-      } else {
-        UART.write("ERR\n");
-      }
-      idx = 0;
-    }
-  }
-}
-
 // --- Fin UART ---
-
 void setup() {
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, LOW);  // Active les drivers
@@ -159,8 +150,6 @@ void setup() {
   motor1.begin();
   motor2.begin();
   motor3.begin();
-
-  UART.begin(UART_BAUD);
 
   int steps45 = angleToSteps(45);
   int steps90 = angleToSteps(90);
@@ -238,5 +227,80 @@ void setup() {
 }
 
 void loop() {
-  handleUART();
+  static main_state_t state = STATE_IDLE;
+  static uint8_t frame[TRAME_SIZE] = {0};
+  static size_t frame_index = 0;
+  static int step[MOTOR_COUNT] = {0};
+
+  switch (state) {
+    case STATE_IDLE:
+        state = STATE_UART_RECEIVE;
+        break;
+
+    case STATE_UART_RECEIVE: {
+        while (Serial.available()) {
+            uint8_t byte = Serial.read();
+            if (frame_index == 0 && byte != MOTSMAGIC) continue;
+            if (frame_index > 1 && byte == MOTSMAGIC) {
+                frame_index = 1;
+                frame[0] = MOTSMAGIC;
+                continue;
+            }
+            if (frame_index >= TRAME_SIZE) {
+                frame_index = 0;
+                send_uart_status_code(MODE_ERROR, CODE_ERROR_DEPASS);
+                continue;
+            }
+            frame[frame_index++] = byte;
+            if (frame_index == TRAME_SIZE) {
+                frame_index = 0;
+                state = STATE_VALIDATE_FRAME;
+            }
+        }
+        break;
+    }
+
+    case STATE_VALIDATE_FRAME: {
+        uint8_t checksum = calculate_checksum(frame, 4);
+        if (checksum == frame[TRAME_SIZE - 1]) {
+            int8_t angle[MOTOR_COUNT] = {0};
+            for (int i = 0; i < MOTOR_COUNT; ++i) {
+                angle[i] = (int8_t)frame[i + 1];
+            }
+            if (angle[0] >= ANGLE_MIN && angle[0] <= ANGLE_MAX &&
+                angle[1] >= ANGLE_MIN && angle[1] <= ANGLE_MAX &&
+                angle[2] >= ANGLE_MIN && angle[2] <= ANGLE_MAX) {
+                send_uart_status_code(MODE_OK, CODE_OK);
+            } else {
+                send_uart_status_code(MODE_ERROR, CODE_ERROR_ANGLE);
+                state = STATE_IDLE;
+                break;
+            }
+            for(int i = 0; i < MOTOR_COUNT; ++i) {
+                step[i] = angleToSteps(angle[i]);
+            }
+            state = STATE_MOVE_MOTORS;
+        } else {
+            send_uart_status_code(MODE_ERROR, CODE_ERROR_CHECKSUM);
+            state = STATE_IDLE;
+        }
+        break;
+    }
+
+    case STATE_MOVE_MOTORS:
+        // Tous montent à 90° l'un après l'autre (rampé)
+        rampedMove(motor1, step[0]);
+        rampedMove(motor2, step[1]);
+        rampedMove(motor3, step[2]);
+        state = STATE_IDLE;
+        break;
+
+    case STATE_ERROR:
+        state = STATE_IDLE;
+        break;
+
+    default:
+        state = STATE_IDLE;
+        break;
+  }
 }
