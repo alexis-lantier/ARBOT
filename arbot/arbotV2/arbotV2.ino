@@ -151,79 +151,7 @@ void setup() {
   motor2.begin();
   motor3.begin();
 
-  int steps45 = angleToSteps(45);
-  int steps90 = angleToSteps(90);
-
-  // Tous montent à 45° en même temps (rampé)
-  syncMoveAllTo(steps45);
-  delay(500);
-
-  // Tous montent à 90° l'un après l'autre (rampé)
-  rampedMove(motor1, steps90);
-  rampedMove(motor2, steps90);
-  rampedMove(motor3, steps90);
-    // Tous montent à 45° l'un après l'autre (rampé)
-  rampedMove(motor1, steps45);
-  rampedMove(motor2, steps45);
-  rampedMove(motor3, steps45);
-    // Tous montent à 90° l'un après l'autre (rampé)
-  rampedMove(motor1, steps90);
-  rampedMove(motor2, steps90);
-  rampedMove(motor3, steps90);
-      // Tous montent à 45° l'un après l'autre (rampé)
-  rampedMove(motor1, steps45);
-  rampedMove(motor2, steps45);
-  rampedMove(motor3, steps45);
-    // Tous montent à 90° l'un après l'autre (rampé)
-  rampedMove(motor1, steps90);
-  rampedMove(motor2, steps90);
-  rampedMove(motor3, steps90);
-  delay(500);
-
-  // Tous redescendent à 45° en même temps (rampé)
-  syncMoveAllTo(steps45);
-  delay(500);
-
-  // Tous redescendent à 0° en même temps (rampé)
-  syncMoveAllTo(0);
-  delay(500);
-
-  // Tous remontent à 45° l'un après l'autre (rampé)
-  rampedMove(motor1, steps45);
-  delay(200);
-  rampedMove(motor2, steps45);
-  delay(200);
-  rampedMove(motor3, steps45);
-  delay(500);
-
-  // Tous montent à 90° l'un après l'autre (rampé)
-  rampedMove(motor1, steps90);
-  delay(200);
-  rampedMove(motor2, steps90);
-  delay(200);
-  rampedMove(motor3, steps90);
-  delay(500);
-
-  // Tous redescendent à 45° en même temps (rampé)
-  syncMoveAllTo(steps45);
-  delay(500);
-  syncMoveAllTo(steps90);
-  delay(75);
-  syncMoveAllTo(steps45);
-  delay(75);
-  syncMoveAllTo(steps90);
-  delay(75);
-  syncMoveAllTo(steps45);
-  delay(75);
-   // Tous redescendent à 90° en même temps (rampé)
-  syncMoveAllTo(steps90);
-  delay(100);
-
-  // Tous redescendent à 0° en même temps (rampé)
-  syncMoveAllTo(0);
-  delay(500);
-
-  digitalWrite(ENABLE_PIN, HIGH);  // désactive les drivers
+  Serial.begin(UART_BAUD_RATE);
 }
 
 void loop() {
@@ -270,16 +198,19 @@ void loop() {
             if (angle[0] >= ANGLE_MIN && angle[0] <= ANGLE_MAX &&
                 angle[1] >= ANGLE_MIN && angle[1] <= ANGLE_MAX &&
                 angle[2] >= ANGLE_MIN && angle[2] <= ANGLE_MAX) {
-                send_uart_status_code(MODE_OK, CODE_OK);
+
+                send_uart_status_code(angle[0], CODE_OK);
+                send_uart_status_code(angle[1], CODE_OK);
+                send_uart_status_code(angle[2], CODE_OK);
+
+                for(int i = 0; i < MOTOR_COUNT; ++i) {
+                  step[i] = angleToSteps(angle[i]);
+                }
+                state = STATE_MOVE_MOTORS;
             } else {
                 send_uart_status_code(MODE_ERROR, CODE_ERROR_ANGLE);
                 state = STATE_IDLE;
-                break;
-            }
-            for(int i = 0; i < MOTOR_COUNT; ++i) {
-                step[i] = angleToSteps(angle[i]);
-            }
-            state = STATE_MOVE_MOTORS;
+            }   
         } else {
             send_uart_status_code(MODE_ERROR, CODE_ERROR_CHECKSUM);
             state = STATE_IDLE;
@@ -288,10 +219,7 @@ void loop() {
     }
 
     case STATE_MOVE_MOTORS:
-        // Tous montent à 90° l'un après l'autre (rampé)
-        rampedMove(motor1, step[0]);
-        rampedMove(motor2, step[1]);
-        rampedMove(motor3, step[2]);
+        syncMoveAllTo(step[0]);
         state = STATE_IDLE;
         break;
 

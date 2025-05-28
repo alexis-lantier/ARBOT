@@ -18,7 +18,7 @@ class MotorTester:
         0x00: "Aucun code"
     }
 
-    def __init__(self, port='COM5', baudrate=115200):
+    def __init__(self, port='COM6', baudrate=115200):
         try:
             self.ser = serial.Serial(
                 port=port,
@@ -117,7 +117,9 @@ if __name__ == "__main__":
         tester.ser.reset_output_buffer()
         time.sleep(0.1)
 
-        tester.send_angles(120, 120, 120)
+        tester.send_angles(90, 45, 30)
+        tester.read_response()
+        tester.read_response()
         tester.read_response()
 
     except serial.SerialException as e:
