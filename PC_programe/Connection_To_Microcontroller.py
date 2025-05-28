@@ -3,20 +3,9 @@ import serial
 import struct
 
 class ConnectionToMicrocontroller:
-
-    MOTMAGIC = 0x79
-    ERROR_FRAME_TYPE = 0x01
-    VALID_FRAME_TYPE = 0x00
+    # Angles en degrés
     ANGLE_MIN = -120
     ANGLE_MAX = 120
-    ERROR_CODES = {
-        0x05: "Erreur : dépassement de trame",
-        0x04: "Erreur : checksum incorrect",
-        0x03: "Erreur : angle invalide",
-        0x02: "Erreur : file pleine",
-        0x01: "OK",
-        0x00: "Aucun code"
-    }
 
     def __init__(self, port='COM5', baudrate=115200):
         try:
@@ -42,50 +31,31 @@ class ConnectionToMicrocontroller:
             return 0  # Succès
         else:
             return 1  # Déjà fermé ou jamais ouvert
-
+    
     @staticmethod
-    def to_uint8(val):
-        return int(val) & 0xFF
+    def format_angle(a):
+        return "{:.2f}".format(a)
 
     def send_angles(self, angle1, angle2, angle3):
-        pass
+        # Vérification des plages
         for idx, angle in enumerate([angle1, angle2, angle3], start=1):
             if not (self.ANGLE_MIN <= angle <= self.ANGLE_MAX):
                 return 2  # Code d'erreur pour angle hors plage
-        a1 = self.to_uint8(angle1)
-        a2 = self.to_uint8(angle2)
-        a3 = self.to_uint8(angle3)
-        checksum = self.to_uint8((self.MOTMAGIC + a1 + a2 + a3) % 256)
-        frame = struct.pack('>BBBBB', self.MOTMAGIC, a1, a2, a3, checksum)
+
+        # Conversion float -> string (2 décimales)
+        s1 = self.format_angle(angle1)
+        s2 = self.format_angle(angle2)
+        s3 = self.format_angle(angle3)
+
+        # Trame finale
+        frame = f"{s1}:{s2}:{s3}\n"
+
         if self.ser and self.ser.is_open:
-            self.ser.write(frame)
-            self.ser.read(5)
+            self.ser.write(frame.encode())
             return 0  # Succès
         else:
             return 3  # Port série non ouvert
-
-    def read_response(self):
-        start_time = time.time()
-        while True:
-            if self.ser and self.ser.in_waiting >= 4:
-                response = self.ser.read(4)
-                if len(response) != 4:
-                    return 4  # Réponse incomplète
-                motmagic, mode_rec, code_rec, crc = response
-                if motmagic != self.MOTMAGIC:
-                    return 5  # Mot magique incorrect
-                calculated_crc = self.to_uint8((motmagic + mode_rec + code_rec) % 256)
-                if crc != calculated_crc:
-                    return 6  # Erreur CRC
-                if mode_rec == self.ERROR_FRAME_TYPE:
-                    return code_rec  # Retourne le code d'erreur reçu
-                elif mode_rec == self.VALID_FRAME_TYPE:
-                    return code_rec  # Retourne le code OK reçu
-                else:
-                    return 7  # Trame inconnue
-            if time.time() - start_time > 2:
-                return 8  # Timeout
-            
+     
 if __name__ == "__main__":
     import time
 
