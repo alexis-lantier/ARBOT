@@ -58,12 +58,13 @@ class MotorTester:
         checksum = self.to_uint8((self.MOTMAGIC + a1 + a2 + a3) % 256)
         frame = struct.pack('>BBBBB', self.MOTMAGIC, a1, a2, a3, checksum)
         self.ser.write(frame)
+        self.ser.read(5)
         print(f"Envoyé: {[hex(b) for b in frame]}")
 
     def read_response(self):
         while True:
             if self.ser.in_waiting >= 4:
-                response = self.ser.read(4)
+                response = self.ser.read(5)
                 if len(response) != 4:
                     print("Réponse incomplète reçue.")
                     continue
@@ -117,10 +118,15 @@ if __name__ == "__main__":
         tester.ser.reset_output_buffer()
         time.sleep(0.1)
 
-        tester.send_angles(90, 45, 30)
-        tester.read_response()
-        tester.read_response()
-        tester.read_response()
+        tester.send_angles(30, 30, 30)
+        tester.send_angles(45, 45, 45)
+        tester.send_angles(30, 30, 30)
+        tester.send_angles(45, 45, 45)
+        tester.send_angles(30, 30, 30)
+        tester.send_angles(45, 45, 45)
+
+
+        tester.close()
 
     except serial.SerialException as e:
         print(f"Erreur série : {e}")
