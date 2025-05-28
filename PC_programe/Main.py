@@ -4,7 +4,7 @@ import time
 
 def main():
     app = Application()
-    app.Run()
+    app.Test()
  
 
 if __name__ == "__main__":

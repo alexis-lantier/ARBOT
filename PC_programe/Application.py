@@ -71,12 +71,12 @@ class Application:
     def Test(self):
         print("\n=== MENU MANUEL ===")
         print("Utilise les touches suivantes pour contrôler :")
-        print("z : ^ PHI")
-        print("e : > THETA")
-        print("r : w HEIGHT")
-        print("s : v PHI")
-        print("d : < THETA")
-        print("f : - HEIGHT")
+        print("^ : + PHI")
+        print("> : + THETA")
+        print("w : + HEIGHT")
+        print("v : - PHI")
+        print("< : - THETA")
+        print("s : - HEIGHT")
         print("q : Quitter le menu")
 
         while True:

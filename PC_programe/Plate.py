@@ -6,7 +6,7 @@ from scipy.optimize import fsolve, least_squares
 
 MIN_H = 0
 MAX_H = 106.4
-DEBUG = True
+DEBUG = False
 
 
 class Plate:
