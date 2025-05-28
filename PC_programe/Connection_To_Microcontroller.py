@@ -59,6 +59,7 @@ class ConnectionToMicrocontroller:
         frame = struct.pack('>BBBBB', self.MOTMAGIC, a1, a2, a3, checksum)
         if self.ser and self.ser.is_open:
             self.ser.write(frame)
+            self.ser.read(5)
             return 0  # Succès
         else:
             return 3  # Port série non ouvert
