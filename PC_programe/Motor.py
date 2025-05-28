@@ -32,5 +32,3 @@ class Motor:
         self._angle = new_angle
 
 
-    def getAngle(self):
-        return self._angle

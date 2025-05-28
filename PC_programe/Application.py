@@ -71,7 +71,7 @@ class Application:
             if keyboard.is_pressed('up'):
                 self._machine._plate.MoveAxisPhi(self._machine.GetAnglePhi() + 1)
             elif keyboard.is_pressed('right'):
-                self._machine._plate.MoveAxisTheta(self._machine.GetAngleTheta() + 1)
+                self._machine._plate.MoveAxisTheta(self._machine.GetAngleTheta() + 30)
             elif keyboard.is_pressed('w'):
                 self._machine._plate.MoveAxisHeigh(self._machine.GetHeight() + 1)
             elif keyboard.is_pressed('down'):
