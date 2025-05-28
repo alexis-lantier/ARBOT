@@ -4,8 +4,9 @@ import time
 
 def main():
     app = Application()
-    app.Test()
+    app.Run()
  
 
 if __name__ == "__main__":
     main()
+# derniere version

@@ -9,7 +9,19 @@ class Application:
         self._machine = Machine()
 
     def Initialisation(self):
-        self._machine._plate.MoveAxisHeigh(50.9)
+        # Rampe lente de 0 à 50.9
+        self._machine._plate.MoveAxisHeigh(0.9)
+        target = 50.9
+        step = 1      
+        delay = 0.1  
+
+        current = 0.9
+        while current < target:
+            self._machine._plate.MoveAxisHeigh(current)
+            current += step
+            time.sleep(delay)
+        # S'assurer d'arriver exactement à la valeur cible
+        self._machine._plate.MoveAxisHeigh(target)
         
     def Regulation(self):
         self._machine._ball.Update()

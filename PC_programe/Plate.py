@@ -4,16 +4,16 @@ from Axis import Axis
 import numpy as np
 from scipy.optimize import fsolve, least_squares
 
-MIN_H = 51.9
+MIN_H = 0
 MAX_H = 106.4
-DEBUG = False
+DEBUG = True
 
 
 class Plate:
     def __init__(self):
-        self._anglePhi = -45
-        self._angleTheta = -45
-        self._height = 50.9
+        self._anglePhi = 0
+        self._angleTheta = 0
+        self._height = 0
         self._connectionToMicrocontroller = ConnectionToMicrocontroller()
         self._axisA = Axis()
         self._axisB = Axis()
@@ -59,7 +59,7 @@ class Plate:
             )
 
     def CalculateHeightBasedOnAngle(self, phi_val, theta_val):
-        MIN_H_FOR_ANGLE = 52.9
+        MIN_H_FOR_ANGLE = 0
         MAX_H_FOR_ANGLE = 105.4
         d1_val = 201
         d2_val = 232
@@ -92,6 +92,7 @@ class Plate:
             return [eq1, eq2, eq3]
 
         guesses = [
+            [50, 50, 50],  
             [z_val, z_val, z_val],
             [MAX_H_FOR_ANGLE, MIN_H_FOR_ANGLE, z_val],
             [MIN_H_FOR_ANGLE, MAX_H_FOR_ANGLE, z_val],
@@ -120,7 +121,8 @@ class Plate:
             )
             if result.success:
                 h1, h2, h3 = result.x
-                print(f"Solution trouvée : h1={h1:.2f}, h2={h2:.2f}, h3={h3:.2f}")
+                if DEBUG : 
+                    print(f"Solution trouvée : h1={h1:.2f}, h2={h2:.2f}, h3={h3:.2f}")
                 return h1, h2, h3  # <- RETURN ici
 
         print("Pas de solution trouvée dans les bornes.")
