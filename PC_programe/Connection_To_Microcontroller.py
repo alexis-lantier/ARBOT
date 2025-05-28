@@ -49,6 +49,7 @@ class ConnectionToMicrocontroller:
 
         # Trame finale
         frame = f"{s1}:{s2}:{s3}\n"
+        print(f"Trame envoyée : {frame.strip()}")
 
         if self.ser and self.ser.is_open:
             self.ser.write(frame.encode())
