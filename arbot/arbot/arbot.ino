@@ -100,7 +100,6 @@ void loop() {
       Serial.printf("ANGLES REÇUS: %.2f %.2f %.2f\n", a1, a2, a3);
       syncMoveAllTo(angleToSteps(a1), angleToSteps(a2), angleToSteps(a3));
       delay(100);
-      syncMoveAllTo(0, 0, 0);
     } else {
       Serial.println("❌ Format invalide");
     }
