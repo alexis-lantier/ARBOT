@@ -3,7 +3,7 @@ from Cam import Cam
 import time 
 import serial.tools.list_ports
 
-DEBUG = True
+DEBUG = False
 
 def main():
     print("=== Démarrage ARBOT ===")
@@ -19,7 +19,7 @@ def main():
     if ports and port.isdigit():
         idx = int(port) - 1
         if 0 <= idx < len(ports):
-            port = ports[idx].device
+            port = ports[idx].devic
         else:
             # Si l'utilisateur tape un nombre, on tente COM{nombre}
             port = f"COM{port}"

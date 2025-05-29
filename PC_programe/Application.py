@@ -13,7 +13,7 @@ class Application:
         self._machine._plate.MoveAxisHeigh(0.9)
         target = 50.9
         step = 1      
-        delay = 0.1  
+        delay = 0.05  
 
         current = 0.9
         while current < target:
@@ -25,7 +25,7 @@ class Application:
         
     def Regulation(self):
         self._machine._ball.Update()
-        self._machine.RegulationCenter()
+        #self._machine.RegulationCenter()
         self._machine.RegulationBounce()
 
     def Run(self):

@@ -2,6 +2,8 @@ import time
 import serial
 import struct
 
+DEBUG = False
+
 class ConnectionToMicrocontroller:
     # Angles en degrés
     ANGLE_MIN = -120
@@ -32,13 +34,16 @@ class ConnectionToMicrocontroller:
     def send_angles(self, a1, a2, a3):
         trame = f"{self.format_angle(a1)}:{self.format_angle(a2)}:{self.format_angle(a3)}\n"
         self.ser.write(trame.encode())
-        print(f"Trame envoyée : {trame.strip()}")
+        if DEBUG:
+            print(f"Trame envoyée (debug) : {trame.strip()}")
 
         # Attente de confirmation
         while True:
             line = self.ser.readline().decode().strip()
+            
             if line:
-                print(f"ESP32 → {line}")
+                if DEBUG:
+                    print(f"ESP32 → {line}")
                 if "ANGLES REÇUS" in line:
                     break
      

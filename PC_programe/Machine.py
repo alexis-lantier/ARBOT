@@ -30,13 +30,14 @@ class Machine:
         self._plate.MoveAxisPhi(angle_phi)
 
     def RegulationBounce(self):
+            print (f"Position Z de la balle : {self._ball._cam._position.z}")
             if self._ball._cam._radius is None:
                 return
-            if self._ball._cam._position.z > 293 and self._bounceAutorised:
+            if self._ball._cam._position.z < 293 and self._bounceAutorised:
                 self._bounceAutorised = False
                 self._plate.MakeOneBounce()
 
-            elif self._ball._cam._position.z <= 365.6:
+            elif self._ball._cam._position.z >= 365.6:
                 self._bounceAutorised = True
 
     
