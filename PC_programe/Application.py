@@ -5,8 +5,8 @@ import time
 
 class Application:
 
-    def __init__(self):
-        self._machine = Machine()
+    def __init__(self, port='COM5', baudrate=115200):
+        self._machine = Machine( port=port, baudrate=baudrate)
 
     def Initialisation(self):
         # Rampe lente de 0 à 50.9
@@ -69,6 +69,7 @@ class Application:
 
 
     def Test(self):
+        
         print("\n=== MENU MANUEL ===")
         print("Utilise les touches suivantes pour contrôler :")
         print("^ : + PHI")

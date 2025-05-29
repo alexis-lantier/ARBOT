@@ -6,10 +6,10 @@ import math
 
 class Machine:
 
-    def __init__(self):
+    def __init__(self, port='COM5', baudrate=115200):
         
         self._ball = Ball() 
-        self._plate = Plate()
+        self._plate = Plate( port=port, baudrate=baudrate)
         self._bounceAutorised = True
         
     def GetAnglePhi(self):

@@ -10,11 +10,11 @@ DEBUG = False
 
 
 class Plate:
-    def __init__(self):
+    def __init__(self,port='COM5', baudrate=115200):
         self._anglePhi = 0
         self._angleTheta = 0
         self._height = 0
-        self._connectionToMicrocontroller = ConnectionToMicrocontroller()
+        self._connectionToMicrocontroller = ConnectionToMicrocontroller( port=port, baudrate=baudrate)
         self._axisA = Axis()
         self._axisB = Axis()
         self._axisC = Axis()
