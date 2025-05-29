@@ -9,9 +9,9 @@
 #define ENABLE_PIN 36
 
 const float stepAngle = 0.45;
-const int delay_min = 800;
-const int delay_max = 1200;
-const int ramp_steps = 80;
+const int delay_min = 1000;
+const int delay_max = 3000;
+const int ramp_steps = 50;
 
 int angleToSteps(float angle) {
   return round(angle / stepAngle);
@@ -33,17 +33,21 @@ public:
 
   void prepareMoveTo(int newTarget) {
     target = newTarget;
-    dir = (target > position);
-    digitalWrite(dirPin, dir ? HIGH : LOW);
+    //digitalWrite(dirPin, (target > position) ? HIGH : LOW);
   }
 
   void tick() {
     if (position == target) return;
+
+    bool currentDir = (target > position);
+    digitalWrite(dirPin, currentDir ? HIGH : LOW);  // <-- AJOUTÉ ICI
+
     digitalWrite(stepPin, HIGH);
     delayMicroseconds(5);
     digitalWrite(stepPin, LOW);
     delayMicroseconds(5);
-    position += dir ? 1 : -1;
+    
+    position += currentDir ? 1 : -1;
   }
 
   bool isMoving() {

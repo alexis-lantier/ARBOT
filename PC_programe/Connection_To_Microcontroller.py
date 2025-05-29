@@ -52,11 +52,11 @@ if __name__ == "__main__":
     if conn.is_connected():
         print("Connexion réussie.")
         conn.send_angles(-20, -20, -20)
-        time.sleep(1)
+        time.sleep(0.2)
         conn.send_angles(0, 0, 0)
-        time.sleep(1)
+        time.sleep(0.2)
         conn.send_angles(20, 20, 20)
-        time.sleep(1)
+        time.sleep(0.2)
         conn.send_angles(-20, -20, -20)
         conn.close()
     else:
