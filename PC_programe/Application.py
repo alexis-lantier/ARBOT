@@ -20,7 +20,7 @@ class Application:
         #     self._machine._plate.MoveAxisHeigh(current)
         #     current += step
         #     time.sleep(delay)
-        # S'assurer d'arriver exactement à la valeur cible
+        #S'assurer d'arriver exactement à la valeur cible
         self._machine._plate.MoveAxisHeigh(50.9)
         
     def Regulation(self):

@@ -10,7 +10,7 @@ def main():
     print("Ports COM disponibles :")
     ports = list(serial.tools.list_ports.comports())
     if not ports:
-        print("Aucun port COM détecté. Saisissez manuellement (ex: 5).")
+        print("Aucun port COM détecté. Saisissez manuellement (eqx: 5).")
     else:
         for i, port in enumerate(ports):
             print(f"{i+1}. {port.device} - {port.description}")

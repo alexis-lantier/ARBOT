@@ -9,9 +9,9 @@
 #define ENABLE_PIN 36
 
 const float stepAngle = 0.45;
-const int delay_min = 500;
+const int delay_min = 800;
 const int delay_max = 1200;
-const int ramp_steps = 120;
+const int ramp_steps = 80;
 
 int angleToSteps(float angle) {
   return round(angle / stepAngle);
@@ -40,9 +40,9 @@ public:
   void tick() {
     if (position == target) return;
     digitalWrite(stepPin, HIGH);
-    delayMicroseconds(2);
+    delayMicroseconds(5);
     digitalWrite(stepPin, LOW);
-    delayMicroseconds(2);
+    delayMicroseconds(5);
     position += dir ? 1 : -1;
   }
 
@@ -54,25 +54,26 @@ public:
 StepperMotor m1(STEP1, DIR1);
 StepperMotor m2(STEP2, DIR2);
 StepperMotor m3(STEP3, DIR3);
-/*
+
 int getRampDelay(int i, int total) {
   if (i < ramp_steps)
     return delay_max - (delay_max - delay_min) * i / ramp_steps;
   if (i > total - ramp_steps)
     return delay_max - (delay_max - delay_min) * (total - i) / ramp_steps;
   return delay_min;
-}*/
+}
 
-int getRampDelay(int i, int total) {
-  if (total < 2) return delay_max; // Mouvement trop court
-  int half = total / 2;
-  if (half < 1) return delay_min; // Pas assez de pas pour une rampe
-  if (i < half) {
+int getTrapezoidalDelay(int i, int total, int accel_steps, int delay_min, int delay_max) {
+  if (total < 2 * accel_steps) accel_steps = total / 2;
+  if (i < accel_steps) {
     // Accélération
-    return delay_max - (delay_max - delay_min) * i / half;
-  } else {
+    return delay_max - (delay_max - delay_min) * i / accel_steps;
+  } else if (i > total - accel_steps) {
     // Décélération
-    return delay_max - (delay_max - delay_min) * (total - i) / half;
+    return delay_max - (delay_max - delay_min) * (total - i) / accel_steps;
+  } else {
+    // Vitesse constante
+    return delay_min;
   }
 }
 
@@ -86,25 +87,21 @@ void syncMoveAllTo(int a1, int a2, int a3) {
   int d3 = abs(m3.target - m3.position);
 
   int steps[3] = {d1, d2, d3};
-  int dirs[3] = {m1.dir ? 1 : -1, m2.dir ? 1 : -1, m3.dir ? 1 : -1};
-  int pos[3] = {m1.position, m2.position, m3.position};
-  int targets[3] = {m1.target, m2.target, m3.target};
-
   int maxSteps = max(steps[0], max(steps[1], steps[2]));
   int counters[3] = {0, 0, 0};
 
   for (int i = 0; i < maxSteps; i++) {
     for (int m = 0; m < 3; m++) {
       counters[m] += steps[m];
-      if (counters[m] >= maxSteps && pos[m] != targets[m]) {
-        // Tick le moteur correspondant
-        if (m == 0) m1.tick();
-        if (m == 1) m2.tick();
-        if (m == 2) m3.tick();
+      // Utilise la position réelle du moteur, pas une copie
+      if (counters[m] >= maxSteps) {
+        if (m == 0 && m1.position != m1.target) m1.tick();
+        if (m == 1 && m2.position != m2.target) m2.tick();
+        if (m == 2 && m3.position != m3.target) m3.tick();
         counters[m] -= maxSteps;
       }
     }
-    delayMicroseconds(getRampDelay(i, maxSteps));
+    delayMicroseconds(getTrapezoidalDelay(i, maxSteps, ramp_steps, delay_min, delay_max));
   }
 }
 
@@ -116,8 +113,8 @@ void setup() {
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, LOW); // Active les drivers
 
-  // Initialiser la position à -30°
-  int startSteps = angleToSteps(-30.0);
+  // Initialiser la position à -45°
+  int startSteps = angleToSteps(-45.0);
   m1.position = startSteps;
   m2.position = startSteps;
   m3.position = startSteps;

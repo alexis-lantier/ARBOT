@@ -2,7 +2,7 @@ import time
 import serial
 import struct
 
-DEBUG = False
+DEBUG = True
 
 class ConnectionToMicrocontroller:
     # Angles en degrés
@@ -51,8 +51,13 @@ if __name__ == "__main__":
     conn = ConnectionToMicrocontroller()
     if conn.is_connected():
         print("Connexion réussie.")
+        conn.send_angles(-20, -20, -20)
+        time.sleep(1)
         conn.send_angles(0, 0, 0)
-        time.sleep(2)
+        time.sleep(1)
+        conn.send_angles(20, 20, 20)
+        time.sleep(1)
+        conn.send_angles(-20, -20, -20)
         conn.close()
     else:
         print("Échec de la connexion au port série.")
