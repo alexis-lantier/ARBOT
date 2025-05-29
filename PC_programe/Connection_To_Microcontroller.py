@@ -51,10 +51,8 @@ if __name__ == "__main__":
     conn = ConnectionToMicrocontroller()
     if conn.is_connected():
         print("Connexion réussie.")
-        conn.send_angles(30, 30, 30)
-        time.sleep(0.25)
-
-
+        conn.send_angles(0, 0, 0)
+        time.sleep(2)
         conn.close()
     else:
         print("Échec de la connexion au port série.")

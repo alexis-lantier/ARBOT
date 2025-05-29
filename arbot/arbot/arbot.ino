@@ -11,7 +11,7 @@
 const float stepAngle = 0.45;
 const int delay_min = 500;
 const int delay_max = 1200;
-const int ramp_steps = 45;
+const int ramp_steps = 120;
 
 int angleToSteps(float angle) {
   return round(angle / stepAngle);
@@ -81,15 +81,30 @@ void syncMoveAllTo(int a1, int a2, int a3) {
   m2.prepareMoveTo(a2);
   m3.prepareMoveTo(a3);
 
-  int totalSteps = max(abs(m1.target - m1.position),
-                       max(abs(m2.target - m2.position),
-                           abs(m3.target - m3.position)));
+  int d1 = abs(m1.target - m1.position);
+  int d2 = abs(m2.target - m2.position);
+  int d3 = abs(m3.target - m3.position);
 
-  for (int i = 0; i < totalSteps; i++) {
-    if (m1.isMoving()) m1.tick();
-    if (m2.isMoving()) m2.tick();
-    if (m3.isMoving()) m3.tick();
-    delayMicroseconds(getRampDelay(i, totalSteps));
+  int steps[3] = {d1, d2, d3};
+  int dirs[3] = {m1.dir ? 1 : -1, m2.dir ? 1 : -1, m3.dir ? 1 : -1};
+  int pos[3] = {m1.position, m2.position, m3.position};
+  int targets[3] = {m1.target, m2.target, m3.target};
+
+  int maxSteps = max(steps[0], max(steps[1], steps[2]));
+  int counters[3] = {0, 0, 0};
+
+  for (int i = 0; i < maxSteps; i++) {
+    for (int m = 0; m < 3; m++) {
+      counters[m] += steps[m];
+      if (counters[m] >= maxSteps && pos[m] != targets[m]) {
+        // Tick le moteur correspondant
+        if (m == 0) m1.tick();
+        if (m == 1) m2.tick();
+        if (m == 2) m3.tick();
+        counters[m] -= maxSteps;
+      }
+    }
+    delayMicroseconds(getRampDelay(i, maxSteps));
   }
 }
 
@@ -101,8 +116,8 @@ void setup() {
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, LOW); // Active les drivers
 
-  // Initialiser la position à -45°
-  int startSteps = angleToSteps(-45.0);
+  // Initialiser la position à -30°
+  int startSteps = angleToSteps(-30.0);
   m1.position = startSteps;
   m2.position = startSteps;
   m3.position = startSteps;
@@ -115,12 +130,12 @@ void loop() {
   if (Serial.available()) {
     size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
     buffer[len] = '\0';
-    if (sscanf(buffer, "%f:%f:%f", target[0], target[1], target[2]) == 3) {
-      Serial.printf("ANGLES REÇUS: %.2f %.2f %.2f\n", target[1], target[1], target[1]);
-      syncMoveAllTo(angleToSteps(target[0]), angleToSteps(target[1]), angleToSteps(target[2]));
-      delay(100);
+    if (sscanf(buffer, "%f:%f:%f", &target[0], &target[1], &target[2]) == 3) {
+        Serial.printf("ANGLES REÇUS: %.2f %.2f %.2f\n", target[0], target[1], target[2]);
+        syncMoveAllTo(angleToSteps(target[0]), angleToSteps(target[1]), angleToSteps(target[2]));
+        delay(100);
     } else {
-      Serial.println("❌ Format invalide");
+        Serial.println("Format invalide");
     }
   }
 }
