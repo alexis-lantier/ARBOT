@@ -78,12 +78,12 @@ class Machine:
 
         print(f"Vitesse moyenne : vx={avg_vx:.2f}, vy={avg_vy:.2f}")
 
-        # Calcul directionnel des angles
-        theta = math.degrees(math.atan(avg_vx)) * z_normalisé
-        phi = math.degrees(math.atan(avg_vy)) * z_normalisé
+        gain = 0.2
+        theta = - gain * avg_vx * z_normalisé
+        phi   = - gain * avg_vy * z_normalisé #déja inversé 
 
-        # Clamp les angles à ±angle_max
+        # Clamp pour éviter les dépassements
         theta = max(-angle_max, min(angle_max, theta))
-        phi = max(-angle_max, min(angle_max, phi))
+        phi   = max(-angle_max, min(angle_max, phi))
 
         return theta, phi
