@@ -27,7 +27,7 @@ class ConnectionToMicrocontroller:
     
     @staticmethod
     def format_angle(a):
-        return f"{a:+03d}"
+        return f"{a:+07.2f}"
 
     def send_angles(self, a1, a2, a3):
         trame = f"{self.format_angle(a1)}:{self.format_angle(a2)}:{self.format_angle(a3)}\n"
