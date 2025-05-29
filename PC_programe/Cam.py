@@ -8,7 +8,6 @@ WIDTH = 640
 HEIGHT = 480
 CAMERA_INDEX = 0
 
-#### début des modifs
 class Cam:
     def __init__(self):
         """Initialise la caméra et les paramètres nécessaires."""
@@ -31,7 +30,10 @@ class Cam:
         self._lower_orange = np.array([5, 150, 150])
         self._upper_orange = np.array([25, 255, 255])
 
-       
+        # Historiques pour lisser les vitesses
+        self._vx_history = deque([0]*10, maxlen=10)
+        self._vy_history = deque([0]*10, maxlen=10)
+        self._vz_history = deque([0]*10, maxlen=10)
 
     def get_height(self):
         a= -0.0004
@@ -40,10 +42,7 @@ class Cam:
         d= 852.27
         x= self._radius*2
         return a*x**3 + b*x**2 + c*x + d
-           
 
-   
-    
     def detect_ball(self, frame):
         mask = cv2.inRange(cv2.cvtColor(frame, cv2.COLOR_BGR2HSV), self._lower_orange, self._upper_orange)
         mask = cv2.dilate(cv2.erode(mask, None, 1), None, 1)
@@ -51,11 +50,8 @@ class Cam:
         if contours:
             ((x, y), r) = cv2.minEnclosingCircle(max(contours, key=cv2.contourArea))
             if r > 5:
-                return (int(x), int(y)),r  # Retourne centre et diamètre
+                return (int(x), int(y)), r  # Retourne centre et diamètre
         return None, None
-
-    
-    
 
     def calculate_position(self, center, radius):
         """Calcule la position X, Y, et Z à partir de la détection de la balle."""
@@ -89,7 +85,7 @@ class Cam:
         return self._position
 
     def Update(self):
-        """Met à jour la position et la vitesse de la balle."""
+        """Met à jour la position et la vitesse de la balle avec lissage."""
         ret, frame = self._cap.read()
         if not ret:
             print("Erreur: Impossible de lire la vidéo.")
@@ -109,7 +105,19 @@ class Cam:
             self._position.y,
             self._position.z,
         )
-        self._ballSpeed = Vector(vitesse_x, vitesse_y, vitesse_z)
+
+        # Ajoute les vitesses aux historiques
+        self._vx_history.append(vitesse_x)
+        self._vy_history.append(vitesse_y)
+        self._vz_history.append(vitesse_z)
+
+        # Calcule les vitesses moyennes (lissage)
+        avg_vx = sum(self._vx_history) / len(self._vx_history)
+        avg_vy = sum(self._vy_history) / len(self._vy_history)
+        avg_vz = sum(self._vz_history) / len(self._vz_history)
+
+        # Mets à jour la vitesse lissée
+        self._ballSpeed = Vector(avg_vx, avg_vy, avg_vz)
         self._previous_position = self._position
 
     def display(self):
@@ -159,3 +167,5 @@ class Cam:
     def display_loop(self, stop_event):
         while not stop_event.is_set():
             self.display()
+
+            #v2

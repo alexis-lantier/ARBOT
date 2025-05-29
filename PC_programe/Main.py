@@ -19,7 +19,7 @@ def main():
     if ports and port.isdigit():
         idx = int(port) - 1
         if 0 <= idx < len(ports):
-            port = ports[idx].devic
+            port = ports[idx].device
         else:
             # Si l'utilisateur tape un nombre, on tente COM{nombre}
             port = f"COM{port}"
