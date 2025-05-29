@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import brentq
-DEBUG = False
+DEBUG = True
 
 class Motor:
     def __init__(self):

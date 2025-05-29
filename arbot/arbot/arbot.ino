@@ -54,13 +54,26 @@ public:
 StepperMotor m1(STEP1, DIR1);
 StepperMotor m2(STEP2, DIR2);
 StepperMotor m3(STEP3, DIR3);
-
+/*
 int getRampDelay(int i, int total) {
   if (i < ramp_steps)
     return delay_max - (delay_max - delay_min) * i / ramp_steps;
   if (i > total - ramp_steps)
     return delay_max - (delay_max - delay_min) * (total - i) / ramp_steps;
   return delay_min;
+}*/
+
+int getRampDelay(int i, int total) {
+  if (total < 2) return delay_max; // Mouvement trop court
+  int half = total / 2;
+  if (half < 1) return delay_min; // Pas assez de pas pour une rampe
+  if (i < half) {
+    // Accélération
+    return delay_max - (delay_max - delay_min) * i / half;
+  } else {
+    // Décélération
+    return delay_max - (delay_max - delay_min) * (total - i) / half;
+  }
 }
 
 void syncMoveAllTo(int a1, int a2, int a3) {
@@ -87,18 +100,24 @@ void setup() {
   m3.begin();
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, LOW); // Active les drivers
+
+  // Initialiser la position à -45°
+  int startSteps = angleToSteps(-45.0);
+  m1.position = startSteps;
+  m2.position = startSteps;
+  m3.position = startSteps;
 }
 
 void loop() {
-  char buffer[30];
+  float target[3] = {0};
+  char buffer[128] = {0};
+
   if (Serial.available()) {
     size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
     buffer[len] = '\0';
-
-    float a1 = 0, a2 = 0, a3 = 0;
-    if (sscanf(buffer, "%f:%f:%f", &a1, &a2, &a3) == 3) {
-      Serial.printf("ANGLES REÇUS: %.2f %.2f %.2f\n", a1, a2, a3);
-      syncMoveAllTo(angleToSteps(a1), angleToSteps(a2), angleToSteps(a3));
+    if (sscanf(buffer, "%f:%f:%f", target[0], target[1], target[2]) == 3) {
+      Serial.printf("ANGLES REÇUS: %.2f %.2f %.2f\n", target[1], target[1], target[1]);
+      syncMoveAllTo(angleToSteps(target[0]), angleToSteps(target[1]), angleToSteps(target[2]));
       delay(100);
     } else {
       Serial.println("❌ Format invalide");

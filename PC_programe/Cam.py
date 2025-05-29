@@ -6,7 +6,7 @@ from collections import deque
 
 WIDTH = 640
 HEIGHT = 480
-CAMERA_INDEX = 0
+CAMERA_INDEX = 1
 
 #### début des modifs
 class Cam:

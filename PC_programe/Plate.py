@@ -189,6 +189,7 @@ class Plate:
         )
         time.sleep(0.1)  # Attendre un peu pour le rebond
 
+        # redescendre les axes a la position initiale
         self._axisA.move(self._axisA._height - bounce_height)
         self._axisB.move(self._axisB._height - bounce_height)
         self._axisC.move(self._axisC._height - bounce_height)
@@ -197,6 +198,7 @@ class Plate:
             self._axisB._motor._angle,
             self._axisC._motor._angle,
         )
+        
         print("💥 Rebond déclenché !")
 
     def GetAnglePhi(self):
