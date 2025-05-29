@@ -25,7 +25,7 @@ class Machine:
         return self._plate.GetHeight()
 
     def RegulationCenter(self):
-        angle_teta,angle_phi = self.calculate_angles()
+        angle_phi,angle_teta = self.calculate_angles()
         self._plate.MoveAxisTheta(angle_teta)
         self._plate.MoveAxisPhi(angle_phi)
 
@@ -33,7 +33,7 @@ class Machine:
             print (f"Position Z de la balle : {self._ball._cam._position.z}")
             if self._ball._cam._radius is None:
                 return
-            if self._ball._cam._position.z < 293 and self._bounceAutorised:
+            if self._ball._cam._position.z < 300 and self._bounceAutorised:
                 self._bounceAutorised = False
                 self._plate.MakeOneBounce()
 

@@ -55,7 +55,7 @@ public:
   }
 };
 
-StepperMotor m1(STEP1, DIR1);
+StepperMotor m1(STEP1, DIR1); // pouruqoi il sont en dehors de la classe ????????????????
 StepperMotor m2(STEP2, DIR2);
 StepperMotor m3(STEP3, DIR3);
 

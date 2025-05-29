@@ -9,24 +9,26 @@ class Application:
         self._machine = Machine( port=port, baudrate=baudrate)
 
     def Initialisation(self):
-        # # Rampe lente de 0 à 50.9
-        # self._machine._plate.MoveAxisHeigh(0.9)
-        # target = 50.9
-        # step = 2    
-        # delay = 0.05  
+        # Rampe lente de 0 à 50.9
+        self._machine._plate.MoveAxisHeigh(0.9)
+        target = 50.9
+        step = 1    
+        delay = 0.02
 
-        # current = 0.9
-        # while current < target:
-        #     self._machine._plate.MoveAxisHeigh(current)
-        #     current += step
-        #     time.sleep(delay)
+        current = 0.9
+        while current < target:
+            self._machine._plate.MoveAxisHeigh(current)
+            current += step
+            time.sleep(delay)
         #S'assurer d'arriver exactement à la valeur cible
         self._machine._plate.MoveAxisHeigh(50.9)
         
     def Regulation(self):
         self._machine._ball.Update()
-        #self._machine.RegulationCenter()
+        self._machine.RegulationCenter()
         self._machine.RegulationBounce()
+        
+
 
     def Run(self):
 

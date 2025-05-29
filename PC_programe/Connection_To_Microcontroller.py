@@ -2,7 +2,7 @@ import time
 import serial
 import struct
 
-DEBUG = True
+DEBUG = False
 
 class ConnectionToMicrocontroller:
     # Angles en degrés

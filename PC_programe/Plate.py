@@ -69,9 +69,6 @@ class Plate:
         phi_val = np.radians(phi_val)
         theta_val = np.radians(theta_val)
 
-        # def safearcsin(x):
-        #     return np.arcsin(np.clip(x, -0.9999, 0.9999))
-
         def equations(vars):
             h1, h2, h3 = vars
 
@@ -178,7 +175,7 @@ class Plate:
         )
 
     def MakeOneBounce(self):
-        bounce_height = 20
+        bounce_height = 25
         self._axisA.move(self._axisA._height + bounce_height)
         self._axisB.move(self._axisB._height + bounce_height)
         self._axisC.move(self._axisC._height + bounce_height)
@@ -198,7 +195,6 @@ class Plate:
             self._axisB._motor._angle,
             self._axisC._motor._angle,
         )
-        
         print("💥 Rebond déclenché !")
 
     def GetAnglePhi(self):
