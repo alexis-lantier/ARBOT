@@ -16,7 +16,7 @@ const int ramp_steps = 50;
 int angleToSteps(float angle) {
   return round(angle / stepAngle);
 }
-
++
 class StepperMotor {
 public:
   int stepPin, dirPin;
