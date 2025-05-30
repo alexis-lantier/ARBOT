@@ -31,9 +31,9 @@ class Cam:
         self._upper_orange = np.array([25, 255, 255])
 
         # Historiques pour lisser les vitesses
-        self._vx_history = deque([0]*4, maxlen=4)
-        self._vy_history = deque([0]*4, maxlen=4)
-        self._vz_history = deque([0]*4, maxlen=4)
+        self._vx_history = deque([0]*3, maxlen=3)
+        self._vy_history = deque([0]*3, maxlen=3)
+        self._vz_history = deque([0]*3, maxlen=3)
 
     def get_height(self):
         a= -0.0004

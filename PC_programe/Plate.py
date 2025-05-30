@@ -42,12 +42,12 @@ class Plate:
         ):
             print("La nouvelle hauteur dépasse les limites autorisées.")
             return
+        
 
         self._axisA.move(new_valueh1)
         self._axisB.move(new_valueh2)
         self._axisC.move(new_valueh3)
         # Update the height
-
         self._height = height
         self._connectionToMicrocontroller.send_angles(
             self._axisA._motor._angle,
@@ -137,6 +137,10 @@ class Plate:
         if not (MIN_H <= h1 <= MAX_H and MIN_H <= h2 <= MAX_H and MIN_H <= h3 <= MAX_H):
             print("La nouvelle hauteur dépasse les limites autorisées.")
             return
+        
+        
+        
+        
 
         self._axisA.move(h1)
         self._axisB.move(h2)
@@ -159,6 +163,10 @@ class Plate:
         if not (MIN_H <= h1 <= MAX_H and MIN_H <= h2 <= MAX_H and MIN_H <= h3 <= MAX_H):
             print("La nouvelle hauteur dépasse les limites autorisées.")
             return
+        
+        
+        
+        
 
         self._axisA.move(h1)
         self._axisB.move(h2)

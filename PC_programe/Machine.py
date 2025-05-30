@@ -38,6 +38,11 @@ class Machine:
 
             elif self._ball._cam._position.z >= 365.6:
                 self._bounceAutorised = True
+            delta = 0.5 # contre reaction experimentale certifiée par la norme ISO B.R.I.C.O.L.A.G.E
+            self._plate._height = self._plate._height - delta 
+            self._plate._axisA._height = self._plate._axisA._height-delta
+            self._plate._axisB._height = self._plate._axisB._height-delta
+            self._plate._axisC._height = self._plate._axisC._height-delta
 
     
 
@@ -78,7 +83,7 @@ class Machine:
 
         print(f"Vitesse moyenne : vx={avg_vx:.2f}, vy={avg_vy:.2f}")
 
-        gain = 0.03
+        gain = 0.005
         theta = - gain * avg_vx * z_normalisé
         phi   =  gain * avg_vy * z_normalisé #déja inversé 
 
