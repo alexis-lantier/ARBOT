@@ -37,10 +37,18 @@ class Machine:
         vz = self._ball._cam._ballSpeed.z
         z_plaque = 300  # Hauteur de la plaque
         anticipation = 0.08  # Temps d'anticipation en secondes
+        g = -9810  # Accélération gravitationnelle en mm/s² (attention au signe)
 
-        # Prédiction du temps avant impact
-        if vz < 0:
-            temps_impact = (z - z_plaque) / abs(vz) if abs(vz) > 1e-3 else float('inf')
+        # Résolution de l'équation du second degré : 0.5*g*t^2 + vz*t + (z-z_plaque) = 0
+        a = 0.5 * g
+        b = vz
+        c = z - z_plaque
+
+        delta = b**2 - 4*a*c
+        if delta >= 0 and a != 0:
+            t1 = (-b - math.sqrt(delta)) / (2*a)
+            t2 = (-b + math.sqrt(delta)) / (2*a)
+            temps_impact = min(t for t in [t1, t2] if t > 0) if any(t > 0 for t in [t1, t2]) else float('inf')
         else:
             temps_impact = float('inf')
 
@@ -51,11 +59,11 @@ class Machine:
         elif z >= 365.6:
             self._bounceAutorised = True
 
-        delta = 0.5  # contre reaction experimentale certifiée par la norme ISO B.R.I.C.O.L.A.G.E
-        self._plate._height = self._plate._height - delta 
-        self._plate._axisA._height = self._plate._axisA._height - delta
-        self._plate._axisB._height = self._plate._axisB._height - delta
-        self._plate._axisC._height = self._plate._axisC._height - delta
+        delta_h = 0.5
+        self._plate._height -= delta_h
+        self._plate._axisA._height -= delta_h
+        self._plate._axisB._height -= delta_h
+        self._plate._axisC._height -= delta_h
 
     
 
