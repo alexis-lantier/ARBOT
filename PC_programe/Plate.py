@@ -183,7 +183,7 @@ class Plate:
         )
 
     def MakeOneBounce(self):
-        bounce_height = 15
+        bounce_height = 40
         self._axisA.move(self._axisA._height + bounce_height)
         self._axisB.move(self._axisB._height + bounce_height)
         self._axisC.move(self._axisC._height + bounce_height)

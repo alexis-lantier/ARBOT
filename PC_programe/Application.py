@@ -25,7 +25,7 @@ class Application:
     def Regulation(self):
         self._machine._ball.Update()
         self._machine.RegulationBounce()
-        #self._machine.RegulationCenter()
+        self._machine.RegulationCenter()
 
 
     def Run(self):

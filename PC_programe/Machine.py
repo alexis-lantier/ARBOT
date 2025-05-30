@@ -35,15 +35,15 @@ class Machine:
 
         z = self._ball._cam._position.z
         vz = self._ball._cam._ballSpeed.z
-        z_plaque = 300  # Hauteur de la plaque
-        anticipation = 0.08  # Temps d'anticipation en secondes
-        g = -9810  # Accélération gravitationnelle en mm/s² (attention au signe)
+        d = 2 * self._ball._cam._radius  # Diamètre de la balle
+        anticipation = 0.20
+        g = -9810
 
-        # Résolution de l'équation du second degré : 0.5*g*t^2 + vz*t + (z-z_plaque) = 0
+        # Méthode 1 : Calcul physique (prioritaire)
+        z_plaque = self._plate.GetHeight() - self._ball._cam._radius
         a = 0.5 * g
         b = vz
         c = z - z_plaque
-
         delta = b**2 - 4*a*c
         if delta >= 0 and a != 0:
             t1 = (-b - math.sqrt(delta)) / (2*a)
@@ -55,11 +55,17 @@ class Machine:
         if temps_impact < anticipation and self._bounceAutorised:
             self._bounceAutorised = False
             self._plate.MakeOneBounce()
+        # Méthode 2 : Rebond simple basé sur le diamètre (seulement si la physique n'a pas déclenché)
+        elif d > 45 and self._bounceAutorised:
+            print("💥 Rebond déclenché par diamètre !")
+            self._plate.MakeOneBounce()
+            self._bounceAutorised = False
 
-        elif z >= 365.6:
+        # Réautorisation du rebond si la balle est assez haute
+        if z >= 365.6:
             self._bounceAutorised = True
 
-        delta = 0.1  # contre reaction experimentale certifiée par la norme ISO B.R.I.C.O.L.A.G.E
+        delta = 0.2  # contre reaction experimentale certifiée par la norme ISO B.R.I.C.O.L.A.G.E
         self._plate._height = self._plate._height - delta 
         self._plate._axisA._height = self._plate._axisA._height - delta
         self._plate._axisB._height = self._plate._axisB._height - delta
