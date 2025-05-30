@@ -26,7 +26,6 @@ class Application:
         self._machine.RegulationBounce()
         self._machine.RegulationCenter()
 
-         #time.sleep(0.01)
         if DEBUG:
             print ( f"PHI: {self._machine.GetAnglePhi():.2f}° | TETA: {self._machine.GetAngleTheta():.2f}° ")
 

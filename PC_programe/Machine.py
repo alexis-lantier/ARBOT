@@ -38,14 +38,14 @@ class Machine:
         d = self._ball._cam._radius
         z = self._ball._cam._position.z
        
-        if z < 350 and self._bounceAutorised:
+        if z < 325 and self._bounceAutorised:
             print("💥 Rebond déclenché par diamètre !")
             self._plate.MakeOneBounce()
             self._bounceAutorised = False
             
 
         # Réautorisation du rebond si la balle est assez haute
-        if z > 355:
+        if z > 325:
             self._bounceAutorised = True
 
 
