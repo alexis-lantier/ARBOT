@@ -51,7 +51,7 @@ class Machine:
         elif z >= 365.6:
             self._bounceAutorised = True
 
-        delta = 0.5  # contre reaction experimentale certifiée par la norme ISO B.R.I.C.O.L.A.G.E
+        delta = 0.1  # contre reaction experimentale certifiée par la norme ISO B.R.I.C.O.L.A.G.E
         self._plate._height = self._plate._height - delta 
         self._plate._axisA._height = self._plate._axisA._height - delta
         self._plate._axisB._height = self._plate._axisB._height - delta
@@ -61,10 +61,8 @@ class Machine:
 
     def calculate_angles(self):
         """
-        Calcule les angles theta et phi à partir de la moyenne glissante
-        des vitesses (vx, vy) et de la hauteur normalisée (z).
+        Calcule les angles theta et phi à partir de la position (erreur) et de la vitesse (PD)
         """
-
         z_max = 365.6
         z = self._ball._cam._position.z
 
@@ -72,6 +70,11 @@ class Machine:
         if self._ball._cam._radius is None:
             return 0, 0
 
+        # Erreur de position (distance au centre)
+        ex = self._ball._cam._position.x
+        ey = self._ball._cam._position.y
+
+        # Vitesse
         vx = self._ball._cam._ballSpeed.x
         vy = self._ball._cam._ballSpeed.y
         angle_max = 30.0
@@ -94,11 +97,13 @@ class Machine:
         avg_vx = sum(self._vx_history) / 2
         avg_vy = sum(self._vy_history) / 2
 
-        print(f"Vitesse moyenne : vx={avg_vx:.2f}, vy={avg_vy:.2f}")
+        # Gains à ajuster selon ton système
+        Kp = 0.002   # Gain proportionnel position
+        Kd = 0.005  # Gain dérivé vitesse
 
-        gain = 0.005
-        theta = - gain * avg_vx * z_normalisé
-        phi   =  gain * avg_vy * z_normalisé #déja inversé 
+        # Régulation PD
+        theta = - (Kp * ex + Kd * avg_vx) * z_normalisé
+        phi   =   (Kp * ey + Kd * avg_vy) * z_normalisé
 
         # Clamp pour éviter les dépassements
         theta = max(-angle_max, min(angle_max, theta))

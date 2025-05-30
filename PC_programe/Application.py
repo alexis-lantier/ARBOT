@@ -40,6 +40,7 @@ class Application:
         self.Ramp(50.9)
         while True:
             self.Regulation()
+            print ( self._machine._plate._axisA._height, self._machine._plate._axisB._height, self._machine._plate._axisC._height)
 
             if keyboard.is_pressed('q'):
                 print("Arrêt demandé par l'utilisateur.")
