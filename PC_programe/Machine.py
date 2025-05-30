@@ -32,13 +32,13 @@ class Machine:
     def RegulationBounce(self):
             if self._ball._cam._radius is None:
                 return
-            if self._ball._cam._position.z < 300 and self._bounceAutorised:
+            if self._ball._cam._position.z < 370 and self._bounceAutorised:
                 self._bounceAutorised = False
                 self._plate.MakeOneBounce()
 
-            elif self._ball._cam._position.z >= 365.6:
+            elif self._ball._cam._position.z >=380:
                 self._bounceAutorised = True
-            delta = 0.5 # contre reaction experimentale certifiée par la norme ISO B.R.I.C.O.L.A.G.E
+            delta = 0.2 # contre reaction experimentale certifiée par la norme ISO B.R.I.C.O.L.A.G.E
             self._plate._height = self._plate._height - delta 
             self._plate._axisA._height = self._plate._axisA._height-delta
             self._plate._axisB._height = self._plate._axisB._height-delta
@@ -56,7 +56,7 @@ class Machine:
         z = self._ball._cam._position.z
 
         # Si z est None, ne rien faire
-        if z is None:
+        if self._ball._cam._radius is None:
             return 0, 0
 
         vx = self._ball._cam._ballSpeed.x

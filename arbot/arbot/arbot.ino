@@ -9,9 +9,9 @@
 #define ENABLE_PIN 36
 
 const float stepAngle = 0.45;
-const int delay_min = 1000;
-const int delay_max = 3000;
-const int ramp_steps = 50;
+const int delay_min = 500;
+const int delay_max = 1200;
+const int ramp_steps = 45;
 
 int angleToSteps(float angle) {
   return round(angle / stepAngle);

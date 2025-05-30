@@ -8,11 +8,10 @@ class Application:
     def __init__(self, port='COM5', baudrate=115200):
         self._machine = Machine( port=port, baudrate=baudrate)
 
-    def Initialisation(self):
-        # Rampe lente de 0 à 50.9
-        self._machine._plate.MoveAxisHeigh(0.9)
-        target = 50.9
-        step = 1    
+    def Ramp(self,target):
+        
+        
+        step = 3    
         delay = 0.02
 
         current = 0.9
@@ -21,13 +20,12 @@ class Application:
             current += step
             time.sleep(delay)
         #S'assurer d'arriver exactement à la valeur cible
-        self._machine._plate.MoveAxisHeigh(50.9)
+        self._machine._plate.MoveAxisHeigh(target)
         
     def Regulation(self):
         self._machine._ball.Update()
-        self._machine.RegulationCenter()
         self._machine.RegulationBounce()
-        
+        self._machine.RegulationCenter()
 
 
     def Run(self):
@@ -39,13 +37,14 @@ class Application:
             daemon=True
         )
         update_thread.start()
-        self.Initialisation()
+        self.Ramp(50.9)
         while True:
             self.Regulation()
 
             if keyboard.is_pressed('q'):
                 print("Arrêt demandé par l'utilisateur.")
                 stop_event.set()
+                self.Ramp(0)
                 break
         update_thread.join()
 
