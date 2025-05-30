@@ -16,7 +16,7 @@ const int ramp_steps = 45;
 int angleToSteps(float angle) {
   return round(angle / stepAngle);
 }
-+
+
 class StepperMotor {
 public:
   int stepPin, dirPin;
@@ -33,21 +33,25 @@ public:
 
   void prepareMoveTo(int newTarget) {
     target = newTarget;
-    //digitalWrite(dirPin, (target > position) ? HIGH : LOW);
+
+    // Gestion de la direction
+    if (target > position) {
+      dir = true;  // Sens horaire
+    } else if (target < position) {
+      dir = false; // Sens antihoraire
+    }
   }
 
   void tick() {
     if (position == target) return;
-
-    bool currentDir = (target > position);
-    digitalWrite(dirPin, currentDir ? HIGH : LOW);  // <-- AJOUTÉ ICI
-
+    digitalWrite(dirPin, dir ? HIGH : LOW);
     digitalWrite(stepPin, HIGH);
     delayMicroseconds(5);
     digitalWrite(stepPin, LOW);
     delayMicroseconds(5);
-    
-    position += currentDir ? 1 : -1;
+    // Correction : mise à jour de la position
+    if (dir) position++;
+    else position--;
   }
 
   bool isMoving() {
@@ -94,6 +98,12 @@ void syncMoveAllTo(int a1, int a2, int a3) {
   int maxSteps = max(steps[0], max(steps[1], steps[2]));
   int counters[3] = {0, 0, 0};
 
+  // Send to PC all info for debug
+  Serial.printf("TARGETS: %d %d %d\n", m1.target, m2.target, m3.target);
+  Serial.printf("POSITIONS: %d %d %d\n", m1.position, m2.position, m3.position);
+  Serial.printf("STEPS: %d %d %d\n", steps[0], steps[1], steps[2]);
+  Serial.printf("MAX STEPS: %d\n", maxSteps);
+
   for (int i = 0; i < maxSteps; i++) {
     for (int m = 0; m < 3; m++) {
       counters[m] += steps[m];
@@ -116,12 +126,6 @@ void setup() {
   m3.begin();
   pinMode(ENABLE_PIN, OUTPUT);
   digitalWrite(ENABLE_PIN, LOW); // Active les drivers
-
-  // Initialiser la position à -45°
-  int startSteps = angleToSteps(-45.0);
-  m1.position = startSteps;
-  m2.position = startSteps;
-  m3.position = startSteps;
 }
 
 void loop() {
@@ -132,8 +136,12 @@ void loop() {
     size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
     buffer[len] = '\0';
     if (sscanf(buffer, "%f:%f:%f", &target[0], &target[1], &target[2]) == 3) {
+        // Normaliser les angles
         Serial.printf("ANGLES REÇUS: %.2f %.2f %.2f\n", target[0], target[1], target[2]);
-        syncMoveAllTo(angleToSteps(target[0]), angleToSteps(target[1]), angleToSteps(target[2]));
+        int t1 = angleToSteps(40 + target[0]);
+        int t2 = angleToSteps(40 + target[1]);
+        int t3 = angleToSteps(40 + target[2]);
+        syncMoveAllTo(t1, t2, t3);
         delay(100);
     } else {
         Serial.println("Format invalide");
