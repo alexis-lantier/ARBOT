@@ -3,6 +3,8 @@ from threading import Thread, Event
 import keyboard
 import time
 
+DEBUG = False
+
 class Application:
 
     def __init__(self, port='COM5', baudrate=115200):
@@ -30,7 +32,8 @@ class Application:
 
 
         time.sleep(0.01)
-        print ( f"PHI: {self._machine.GetAnglePhi():.2f}° | TETA: {self._machine.GetAngleTheta():.2f}° ")
+        if DEBUG:
+            print ( f"PHI: {self._machine.GetAnglePhi():.2f}° | TETA: {self._machine.GetAngleTheta():.2f}° ")
 
 
     def Run(self):

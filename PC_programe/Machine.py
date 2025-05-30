@@ -97,8 +97,8 @@ class Machine:
         avg_vy = sum(self._vy_history) / 2
  
         # Gains à ajuster selon ton système
-        Kp = 0.0025
-        Kd = 0.01  # Gain dérivé vitesse
+        Kp = 0.03
+        Kd = 0.003  # Gain dérivé vitesse
  
         # Régulation PD
         theta = - (Kp * ex + Kd * avg_vx) * z_normalisé
@@ -107,6 +107,8 @@ class Machine:
         # Clamp pour éviter les dépassements
         theta = max(-angle_max, min(angle_max, theta))
         phi   = max(-angle_max, min(angle_max, phi))
+
+        print (f"x {ex} y {ey} ")
  
         return theta, phi
     

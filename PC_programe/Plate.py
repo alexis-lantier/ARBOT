@@ -35,13 +35,13 @@ class Plate:
         new_valueh3 = self._axisC._height + AdditionalHeight
 
         # Vérifier si la nouvelle hauteur est dans les limites
-        if not (
-            MIN_H <= new_valueh1 <= MAX_H
-            and MIN_H <= new_valueh2 <= MAX_H
-            and MIN_H <= new_valueh3 <= MAX_H
-        ):
-            print("La nouvelle hauteur dépasse les limites autorisées.")
-            return
+        # if not (
+        #     MIN_H <= new_valueh1 <= MAX_H
+        #     and MIN_H <= new_valueh2 <= MAX_H
+        #     and MIN_H <= new_valueh3 <= MAX_H
+        # ):
+        #     print("La nouvelle hauteur dépasse les limites autorisées.")
+        #     return
         
 
         self._axisA.move(new_valueh1)
@@ -124,10 +124,10 @@ class Plate:
 
         h1, h2, h3 = self.CalculateHeightBasedOnAngle(angle, self._angleTheta)
 
-        # Check if the calculated heights are within the limits
-        if not (MIN_H <= h1 <= MAX_H and MIN_H <= h2 <= MAX_H and MIN_H <= h3 <= MAX_H):
-            print("La nouvelle hauteur dépasse les limites autorisées.")
-            return
+        # # Check if the calculated heights are within the limits
+        # if not (MIN_H <= h1 <= MAX_H and MIN_H <= h2 <= MAX_H and MIN_H <= h3 <= MAX_H):
+        #     print("La nouvelle hauteur dépasse les limites autorisées.")
+        #     return
         
         
         
@@ -151,9 +151,9 @@ class Plate:
 
         h1, h2, h3 = self.CalculateHeightBasedOnAngle(self._anglePhi, angle)
         # Check if the calculated heights are within the limits
-        if not (MIN_H <= h1 <= MAX_H and MIN_H <= h2 <= MAX_H and MIN_H <= h3 <= MAX_H):
-            print("La nouvelle hauteur dépasse les limites autorisées.")
-            return
+        # if not (MIN_H <= h1 <= MAX_H and MIN_H <= h2 <= MAX_H and MIN_H <= h3 <= MAX_H):
+        #     print("La nouvelle hauteur dépasse les limites autorisées.")
+        #     return
         
         self._axisA.move(h1)
         self._axisB.move(h2)

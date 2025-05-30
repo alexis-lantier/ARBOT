@@ -123,16 +123,18 @@ class Cam:
         self._previous_position = self._position
 
     def display(self):
+        
         """Affiche la vidéo avec les informations de suivi de la balle."""
         ret, frame = self._cap.read()
         if not ret or frame is None:
             print("Erreur: Impossible de lire la vidéo.")
             return
 
-        center = (int(self._position.x), int(self._position.y)) if self._position.x and self._position.y else None
+        center = (int(self._position.x + WIDTH/2 ), int(self._position.y + HEIGHT/2)) if self._position.x and self._position.y else None
         vitesse_x, vitesse_y, vitesse_z = self._ballSpeed.x, self._ballSpeed.y, self._ballSpeed.z
         x, y, z = self._position.x, self._position.y, self._position.z
         pts = deque(maxlen=16)
+
 
         if center and self._radius is not None:
             pts.appendleft(center)
