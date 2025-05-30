@@ -8,9 +8,9 @@
 #define DIR3  42
 #define ENABLE_PIN 36
 
-const float stepAngle = 0.1125;
-const int delay_min = 150;
-const int delay_max = 375;
+const float stepAngle = 0.05625;
+const int delay_min = 75;
+const int delay_max = 187.5;
 const int ramp_steps = 45;
 
 int angleToSteps(float angle) {
