@@ -26,9 +26,9 @@ class Machine:
 
     def RegulationCenter(self):
         angle_teta,angle_phi = self.calculate_angles()
-        if 0.15 < abs(self._plate._angleTheta-angle_teta) :
+        if 0.05 < abs(self._plate._angleTheta-angle_teta) :
             self._plate.MoveAxisTheta(angle_teta)
-        if 0.15 < abs(self._plate._anglePhi-angle_phi) :
+        if 0.05< abs(self._plate._anglePhi-angle_phi) :
             self._plate.MoveAxisPhi(angle_phi)
 
     def RegulationBounce(self):
@@ -101,12 +101,12 @@ class Machine:
             avg_vy = vy
  
         # Gains à ajuster selon ton système
-        Kp = 0.035
+        Kp = 0.012
         Kd = 0.015  # Gain dérivé vitesse
  
         # Régulation PD
-        theta = - (Kp * ex + Kd * avg_vx) * z_normalisé
-        phi   =   (Kp * ey + Kd * avg_vy) * z_normalisé
+        theta = - (Kp * ex + Kd * avg_vx) 
+        phi   =   (Kp * ey + Kd * avg_vy) 
  
         # Clamp pour éviter les dépassements
         theta = max(-angle_max, min(angle_max, theta))
