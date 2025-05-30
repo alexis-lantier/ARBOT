@@ -96,16 +96,7 @@ class Plate:
             [MIN_H_FOR_ANGLE, MAX_H_FOR_ANGLE, z_val],
         ]
 
-        # for guess in guesses:
-        #     solution, info, ier, msg = fsolve(
-        #         equations, guess, full_output=True, xtol=1e-3, maxfev=100000000
-        #     )
-        #     if ier == 1:
-        #         h1, h2, h3 = solution
-        #         if DEBUG:
-        #             print(f"Calculated heights: h1={h1:.2f}, h2={h2:.2f}, h3={h3:.2f}")
-                    
-        #         return h1, h2, h3
+       
 
         lower_bounds = [MIN_H, MIN_H, MIN_H]
         upper_bounds = [MAX_H, MAX_H, MAX_H]
@@ -164,10 +155,6 @@ class Plate:
             print("La nouvelle hauteur dépasse les limites autorisées.")
             return
         
-        
-        
-        
-
         self._axisA.move(h1)
         self._axisB.move(h2)
         self._axisC.move(h3)
@@ -183,7 +170,9 @@ class Plate:
         )
 
     def MakeOneBounce(self):
-        bounce_height = 40
+
+        
+        bounce_height = 60
         self._axisA.move(self._axisA._height + bounce_height)
         self._axisB.move(self._axisB._height + bounce_height)
         self._axisC.move(self._axisC._height + bounce_height)

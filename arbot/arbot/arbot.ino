@@ -8,9 +8,9 @@
 #define DIR3  42
 #define ENABLE_PIN 36
 
-const float stepAngle = 0.45;
-const int delay_min = 800;
-const int delay_max = 2000;
+const float stepAngle = 0.1125;
+const int delay_min = 150;
+const int delay_max = 375;
 const int ramp_steps = 45;
 
 int angleToSteps(float angle) {
@@ -142,7 +142,7 @@ void loop() {
         int t2 = angleToSteps(40 + target[1]);
         int t3 = angleToSteps(40 + target[2]);
         syncMoveAllTo(t1, t2, t3);
-        delay(100);
+        //delay(100);
     } else {
         Serial.println("Format invalide");
     }

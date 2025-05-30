@@ -34,7 +34,7 @@ class ConnectionToMicrocontroller:
     def send_angles(self, a1, a2, a3):
         trame = f"{self.format_angle(a1)}:{self.format_angle(a2)}:{self.format_angle(a3)}\n"
         self.ser.write(trame.encode())
-        if DEBUG:
+        if 1:
             print(f"Trame envoyée (debug) : {trame.strip()}")
 
         # Attente de confirmation

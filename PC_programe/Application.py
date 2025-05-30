@@ -24,8 +24,13 @@ class Application:
         
     def Regulation(self):
         self._machine._ball.Update()
+        
         self._machine.RegulationBounce()
         self._machine.RegulationCenter()
+
+
+        time.sleep(0.01)
+        print ( f"PHI: {self._machine.GetAnglePhi():.2f}° | TETA: {self._machine.GetAngleTheta():.2f}° ")
 
 
     def Run(self):
@@ -40,8 +45,7 @@ class Application:
         self.Ramp(50.9)
         while True:
             self.Regulation()
-            print ( self._machine._plate._axisA._height, self._machine._plate._axisB._height, self._machine._plate._axisC._height)
-
+            
             if keyboard.is_pressed('q'):
                 print("Arrêt demandé par l'utilisateur.")
                 stop_event.set()

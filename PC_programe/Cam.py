@@ -6,7 +6,7 @@ from collections import deque
 
 WIDTH = 640
 HEIGHT = 480
-CAMERA_INDEX = 1
+CAMERA_INDEX = 0
 
 class Cam:
     def __init__(self):
@@ -59,6 +59,8 @@ class Cam:
             x, y = center
             z = self.get_height()  # Conversion diamètre -> hauteur en mm
             _position = Vector(x, y, z)
+            x = x - WIDTH/2
+            y = y - HEIGHT/2
             return x, y, z
         return None, None, None
 
