@@ -30,19 +30,32 @@ class Machine:
         self._plate.MoveAxisPhi(angle_phi)
 
     def RegulationBounce(self):
-            if self._ball._cam._radius is None:
-                return
-            if self._ball._cam._position.z < 370 and self._bounceAutorised:
-                self._bounceAutorised = False
-                self._plate.MakeOneBounce()
+        if self._ball._cam._radius is None:
+            return
 
-            elif self._ball._cam._position.z >=380:
-                self._bounceAutorised = True
-            delta = 0.2 # contre reaction experimentale certifiée par la norme ISO B.R.I.C.O.L.A.G.E
-            self._plate._height = self._plate._height - delta 
-            self._plate._axisA._height = self._plate._axisA._height-delta
-            self._plate._axisB._height = self._plate._axisB._height-delta
-            self._plate._axisC._height = self._plate._axisC._height-delta
+        z = self._ball._cam._position.z
+        vz = self._ball._cam._ballSpeed.z
+        z_plaque = 300  # Hauteur de la plaque
+        anticipation = 0.08  # Temps d'anticipation en secondes
+
+        # Prédiction du temps avant impact
+        if vz < 0:
+            temps_impact = (z - z_plaque) / abs(vz) if abs(vz) > 1e-3 else float('inf')
+        else:
+            temps_impact = float('inf')
+
+        if temps_impact < anticipation and self._bounceAutorised:
+            self._bounceAutorised = False
+            self._plate.MakeOneBounce()
+
+        elif z >= 365.6:
+            self._bounceAutorised = True
+
+        delta = 0.5  # contre reaction experimentale certifiée par la norme ISO B.R.I.C.O.L.A.G.E
+        self._plate._height = self._plate._height - delta 
+        self._plate._axisA._height = self._plate._axisA._height - delta
+        self._plate._axisB._height = self._plate._axisB._height - delta
+        self._plate._axisC._height = self._plate._axisC._height - delta
 
     
 
