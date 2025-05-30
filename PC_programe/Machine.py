@@ -101,7 +101,7 @@ class Machine:
             avg_vy = vy
  
         # Gains à ajuster selon ton système
-        Kp = 0.012
+        Kp = 0.023
         Kd = 0.015  # Gain dérivé vitesse
  
         # Régulation PD
