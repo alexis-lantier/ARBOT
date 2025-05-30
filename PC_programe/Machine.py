@@ -26,9 +26,9 @@ class Machine:
 
     def RegulationCenter(self):
         angle_teta,angle_phi = self.calculate_angles()
-        if 0.1 < abs(self._plate._angleTheta-angle_teta) :
+        if 0.15 < abs(self._plate._angleTheta-angle_teta) :
             self._plate.MoveAxisTheta(angle_teta)
-        if 0.1 < abs(self._plate._anglePhi-angle_phi) :
+        if 0.15 < abs(self._plate._anglePhi-angle_phi) :
             self._plate.MoveAxisPhi(angle_phi)
 
     def RegulationBounce(self):
@@ -38,14 +38,14 @@ class Machine:
         d = self._ball._cam._radius
         z = self._ball._cam._position.z
        
-        if z < 375 and self._bounceAutorised:
+        if z < 350 and self._bounceAutorised:
             print("💥 Rebond déclenché par diamètre !")
             self._plate.MakeOneBounce()
             self._bounceAutorised = False
             
 
         # Réautorisation du rebond si la balle est assez haute
-        if z > 250:
+        if z > 355:
             self._bounceAutorised = True
 
 
@@ -85,7 +85,7 @@ class Machine:
             self._history_index = 0
  
         # Normalisation de z
-        z_normalisé = max(0.0, min(1.0, 1 - z / z_max))+ 0.8
+        z_normalisé = max(0.0, min(1.0, 1 - z / z_max))+ 0.3
  
         # Mise à jour de l’historique des vitesses
         self._vx_history[self._history_index] = vx
@@ -95,10 +95,14 @@ class Machine:
         # Moyenne glissante
         avg_vx = sum(self._vx_history) / 2
         avg_vy = sum(self._vy_history) / 2
+
+        if 1:
+            avg_vx = vx
+            avg_vy = vy
  
         # Gains à ajuster selon ton système
-        Kp = 0.045
-        Kd = 0.003  # Gain dérivé vitesse
+        Kp = 0.035
+        Kd = 0.015  # Gain dérivé vitesse
  
         # Régulation PD
         theta = - (Kp * ex + Kd * avg_vx) * z_normalisé

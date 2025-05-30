@@ -11,11 +11,8 @@ class Application:
         self._machine = Machine( port=port, baudrate=baudrate)
 
     def Ramp(self,target):
-        
-        
-        step = 3    
-        delay = 0.02
-
+        step = 2 
+        delay = 0.01
         current = 0.9
         while current < target:
             self._machine._plate.MoveAxisHeigh(current)
@@ -26,12 +23,10 @@ class Application:
         
     def Regulation(self):
         self._machine._ball.Update()
-        
         self._machine.RegulationBounce()
         self._machine.RegulationCenter()
 
-
-        time.sleep(0.01)
+         #time.sleep(0.01)
         if DEBUG:
             print ( f"PHI: {self._machine.GetAnglePhi():.2f}° | TETA: {self._machine.GetAngleTheta():.2f}° ")
 

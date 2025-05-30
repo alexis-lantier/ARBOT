@@ -19,6 +19,7 @@ class Cam:
 
         # Initialisation de la caméra
         self._cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
+        self._cap.set(cv2.CAP_PROP_FPS, 60)  # Essaie 60 fps
         if not self._cap.isOpened():
             print(f"Erreur: Impossible d'ouvrir la caméra avec l'index {CAMERA_INDEX}.")
             exit()
