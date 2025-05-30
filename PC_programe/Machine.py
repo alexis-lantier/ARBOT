@@ -25,7 +25,7 @@ class Machine:
         return self._plate.GetHeight()
 
     def RegulationCenter(self):
-        angle_phi,angle_teta = self.calculate_angles()
+        angle_teta,angle_phi = self.calculate_angles()
         self._plate.MoveAxisTheta(angle_teta)
         self._plate.MoveAxisPhi(angle_phi)
 
@@ -60,8 +60,8 @@ class Machine:
 
         # Initialisation de l'historique si ce n’est pas déjà fait
         if not hasattr(self, "_vx_history"):
-            self._vx_history = [0.0] * 10
-            self._vy_history = [0.0] * 10
+            self._vx_history = [0.0] * 2
+            self._vy_history = [0.0] * 2
             self._history_index = 0
 
         # Normalisation de z
@@ -70,17 +70,17 @@ class Machine:
         # Mise à jour de l’historique des vitesses
         self._vx_history[self._history_index] = vx
         self._vy_history[self._history_index] = vy
-        self._history_index = (self._history_index + 1) % 10
+        self._history_index = (self._history_index + 1) % 2
 
         # Moyenne glissante
-        avg_vx = sum(self._vx_history) / 10
-        avg_vy = sum(self._vy_history) / 10
+        avg_vx = sum(self._vx_history) / 2
+        avg_vy = sum(self._vy_history) / 2
 
         print(f"Vitesse moyenne : vx={avg_vx:.2f}, vy={avg_vy:.2f}")
 
-        gain = 0.2
+        gain = 0.03
         theta = - gain * avg_vx * z_normalisé
-        phi   = - gain * avg_vy * z_normalisé #déja inversé 
+        phi   =  gain * avg_vy * z_normalisé #déja inversé 
 
         # Clamp pour éviter les dépassements
         theta = max(-angle_max, min(angle_max, theta))
