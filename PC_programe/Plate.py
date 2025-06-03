@@ -173,6 +173,7 @@ class Plate:
 
         
         bounce_height = 30
+        
         self._axisA.move(self._axisA._height + bounce_height+virtualHeight1 )
         self._axisB.move(self._axisB._height + bounce_height+virtualHeight2)
         self._axisC.move(self._axisC._height + bounce_height+virtualHeight3)

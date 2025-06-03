@@ -45,11 +45,11 @@ public:
   void tick() {
     if (position == target) return;
     digitalWrite(dirPin, dir ? HIGH : LOW);
-    delayMicroseconds(200);
+    delayMicroseconds(20);
     digitalWrite(stepPin, HIGH);
-    delayMicroseconds(200);
+    delayMicroseconds(20);
     digitalWrite(stepPin, LOW);
-    delayMicroseconds(200);
+    delayMicroseconds(20);
     // Correction : mise à jour de la position
     if (dir) position++;
     else position--;
@@ -105,7 +105,7 @@ void syncMoveAllTo(int a1, int a2, int a3) {
   Serial.printf("STEPS: %d %d %d\n", steps[0], steps[1], steps[2]);
   Serial.printf("MAX STEPS: %d\n", maxSteps);
 
-  //for (int i = 0; i < maxSteps; i++) {
+  for (int i = 0; i < maxSteps; i++) {
     for (int m = 0; m < 3; m++) {
       counters[m] += steps[m];
       // Utilise la position réelle du moteur, pas une copie
@@ -117,7 +117,7 @@ void syncMoveAllTo(int a1, int a2, int a3) {
       }
     }
     //delayMicroseconds(getTrapezoidalDelay(i, maxSteps, ramp_steps, delay_min, delay_max));
-  //}
+  }
 }
 
 void setup() {
