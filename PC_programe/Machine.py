@@ -40,6 +40,7 @@ class Machine:
        
         if z < 325 and self._bounceAutorised:
             print("💥 Rebond déclenché par diamètre !")
+            self.RegulationCenter()
             self._plate.MakeOneBounce()
             self._bounceAutorised = False
             
@@ -49,7 +50,7 @@ class Machine:
             self._bounceAutorised = True
 
 
-        delta = 0.2  # contre reaction experimentale certifiée par la norme ISO B.R.I.C.O.L.A.G.E
+        delta = 0.2  
         self._plate._height = self._plate._height - delta 
         self._plate._axisA._height = self._plate._axisA._height - delta
         self._plate._axisB._height = self._plate._axisB._height - delta
