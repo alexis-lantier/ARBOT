@@ -169,13 +169,13 @@ class Plate:
             self._axisC._motor._angle,
         )
 
-    def MakeOneBounce(self):
+    def MakeOneBounce(self,virtualHeight1, virtualHeight2, virtualHeight3):
 
         
-        bounce_height = 50
-        self._axisA.move(self._axisA._height + bounce_height)
-        self._axisB.move(self._axisB._height + bounce_height)
-        self._axisC.move(self._axisC._height + bounce_height)
+        bounce_height = 30
+        self._axisA.move(self._axisA._height + bounce_height+virtualHeight1 )
+        self._axisB.move(self._axisB._height + bounce_height+virtualHeight2)
+        self._axisC.move(self._axisC._height + bounce_height+virtualHeight3)
         self._connectionToMicrocontroller.send_angles(
             self._axisA._motor._angle,
             self._axisB._motor._angle,
@@ -184,9 +184,9 @@ class Plate:
         time.sleep(0.1)  # Attendre un peu pour le rebond
 
         # redescendre les axes a la position initiale
-        self._axisA.move(self._axisA._height - bounce_height)
-        self._axisB.move(self._axisB._height - bounce_height)
-        self._axisC.move(self._axisC._height - bounce_height)
+        self._axisA.move(self._axisA._height - bounce_height - virtualHeight1)
+        self._axisB.move(self._axisB._height - bounce_height - virtualHeight2)
+        self._axisC.move(self._axisC._height - bounce_height - virtualHeight3)
         self._connectionToMicrocontroller.send_angles(
             self._axisA._motor._angle,
             self._axisB._motor._angle,

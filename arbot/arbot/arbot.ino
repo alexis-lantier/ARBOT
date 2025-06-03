@@ -45,11 +45,11 @@ public:
   void tick() {
     if (position == target) return;
     digitalWrite(dirPin, dir ? HIGH : LOW);
-    delayMicroseconds(100);
+    delayMicroseconds(200);
     digitalWrite(stepPin, HIGH);
-    delayMicroseconds(50);
+    delayMicroseconds(200);
     digitalWrite(stepPin, LOW);
-    delayMicroseconds(50);
+    delayMicroseconds(200);
     // Correction : mise à jour de la position
     if (dir) position++;
     else position--;
@@ -116,7 +116,7 @@ void syncMoveAllTo(int a1, int a2, int a3) {
         counters[m] -= maxSteps;
       }
     }
-    delayMicroseconds(getTrapezoidalDelay(i, maxSteps, ramp_steps, delay_min, delay_max));
+    //delayMicroseconds(getTrapezoidalDelay(i, maxSteps, ramp_steps, delay_min, delay_max));
   //}
 }
 

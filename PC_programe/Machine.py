@@ -15,7 +15,11 @@ class Machine:
         self._last_bounce_time = 0
         self._min_bounce_interval = 0.2  # Intervalle minimum entre les rebonds en secondes
         self._bounce_offset = 0.4  # Temps d'avance pour déclencher le rebond avant l'impact
-        
+
+        self._virtualHeight1=0
+        self._virtualHeight2=0
+        self._virtualHeight3=0
+
     def GetAnglePhi(self):
         # Get the angle phi from the Ball object
         return self._plate.GetAnglePhi()
@@ -30,10 +34,13 @@ class Machine:
 
     def RegulationCenter(self):
         angle_teta,angle_phi = self.calculate_angles()
-        if 0.05 < abs(self._plate._angleTheta-angle_teta) :
-            self._plate.MoveAxisTheta(angle_teta)
-        if 0.05< abs(self._plate._anglePhi-angle_phi) :
-            self._plate.MoveAxisPhi(angle_phi)
+        self._virtualHeight1,self._virtualHeight2,self._virtualHeight3 = self._plate.CalculateHeightBasedOnAngle(angle_phi, angle_teta)
+        
+
+        # if 0.05 < abs(self._plate._angleTheta-angle_teta) :
+        #     self._plate.MoveAxisTheta(angle_teta)
+        # if 0.05< abs(self._plate._anglePhi-angle_phi) :
+        #     self._plate.MoveAxisPhi(angle_phi)
 
     def calculate_fall_time(self, height, velocity):
         """Calcule le temps de chute estimé en fonction de la hauteur et de la vitesse."""
@@ -87,7 +94,7 @@ class Machine:
             # Cas 1: La balle est déjà très basse
             if z < critical_height:
                 print(f"💥 Rebond forcé ! (Hauteur critique atteinte: {z:.1f}mm)")
-                self._plate.MakeOneBounce()
+                self._plate.MakeOneBounce(self._virtualHeight1, self._virtualHeight2, self._virtualHeight3)
                 self._bounceAutorised = False
                 self._last_bounce_time = current_time
                 return
@@ -95,7 +102,7 @@ class Machine:
             # Cas 2: Détection par temps de chute
             elif fall_time is not None and fall_time < self._bounce_offset:
                 print(f"💥 Rebond déclenché ! (Temps de chute: {fall_time:.3f}s, Offset: {self._bounce_offset:.3f}s)")
-                self._plate.MakeOneBounce()
+                self._plate.MakeOneBounce(self._virtualHeight1, self._virtualHeight2, self._virtualHeight3)
                 self._bounceAutorised = False
                 self._last_bounce_time = current_time
                 return
@@ -104,7 +111,7 @@ class Machine:
         if z < 325 and self._bounceAutorised:
             print("💥 Rebond déclenché par diamètre !")
             self.RegulationCenter()
-            self._plate.MakeOneBounce()
+            self._plate.MakeOneBounce(self._virtualHeight1, self._virtualHeight2, self._virtualHeight3)
             self._bounceAutorised = False
             self._last_bounce_time = current_time
             return

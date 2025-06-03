@@ -6,7 +6,7 @@ from collections import deque
 
 WIDTH = 640
 HEIGHT = 480
-CAMERA_INDEX = 1
+CAMERA_INDEX = 0
 
 class Cam:
     def __init__(self):
