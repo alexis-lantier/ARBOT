@@ -9,7 +9,7 @@
 #define ENABLE_PIN 36
 
 const float stepAngle = 0.05625;
-const int delay_min = 75;
+const int delay_min = 100;
 const int delay_max = 187.5;
 const int ramp_steps = 45;
 
@@ -45,10 +45,11 @@ public:
   void tick() {
     if (position == target) return;
     digitalWrite(dirPin, dir ? HIGH : LOW);
+    delayMicroseconds(100);
     digitalWrite(stepPin, HIGH);
-    delayMicroseconds(5);
+    delayMicroseconds(50);
     digitalWrite(stepPin, LOW);
-    delayMicroseconds(5);
+    delayMicroseconds(50);
     // Correction : mise à jour de la position
     if (dir) position++;
     else position--;
@@ -104,7 +105,7 @@ void syncMoveAllTo(int a1, int a2, int a3) {
   Serial.printf("STEPS: %d %d %d\n", steps[0], steps[1], steps[2]);
   Serial.printf("MAX STEPS: %d\n", maxSteps);
 
-  for (int i = 0; i < maxSteps; i++) {
+  //for (int i = 0; i < maxSteps; i++) {
     for (int m = 0; m < 3; m++) {
       counters[m] += steps[m];
       // Utilise la position réelle du moteur, pas une copie
@@ -116,7 +117,7 @@ void syncMoveAllTo(int a1, int a2, int a3) {
       }
     }
     delayMicroseconds(getTrapezoidalDelay(i, maxSteps, ramp_steps, delay_min, delay_max));
-  }
+  //}
 }
 
 void setup() {
