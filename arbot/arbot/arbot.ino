@@ -45,11 +45,11 @@ public:
   void tick() {
     if (position == target) return;
     digitalWrite(dirPin, dir ? HIGH : LOW);
-    delayMicroseconds(20);
+    delayMicroseconds(5);    // regler
     digitalWrite(stepPin, HIGH);
-    delayMicroseconds(20);
+    delayMicroseconds(5);    // regler
     digitalWrite(stepPin, LOW);
-    delayMicroseconds(20);
+    delayMicroseconds(5);    // regler
     // Correction : mise à jour de la position
     if (dir) position++;
     else position--;

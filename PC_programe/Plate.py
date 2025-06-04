@@ -129,10 +129,6 @@ class Plate:
             print("La nouvelle hauteur dépasse les limites autorisées.")
             return
         
-        
-        
-        
-
         self._axisA.move(h1)
         self._axisB.move(h2)
         self._axisC.move(h3)
@@ -169,14 +165,17 @@ class Plate:
             self._axisC._motor._angle,
         )
 
-    def MakeOneBounce(self,virtualHeight1, virtualHeight2, virtualHeight3):
+    def MakeOneBounce(self,virtualAngleTheta, virtualAnglePhi):
 
         
         bounce_height = 30
-        
-        self._axisA.move(self._axisA._height + bounce_height+virtualHeight1 )
-        self._axisB.move(self._axisB._height + bounce_height+virtualHeight2)
-        self._axisC.move(self._axisC._height + bounce_height+virtualHeight3)
+    
+        self.MoveAxisPhi(virtualAnglePhi)
+        self.MoveAxisTheta(virtualAngleTheta)
+
+        self._axisA.move(self._axisA._height + bounce_height )
+        self._axisB.move(self._axisB._height + bounce_height)
+        self._axisC.move(self._axisC._height + bounce_height)
         self._connectionToMicrocontroller.send_angles(
             self._axisA._motor._angle,
             self._axisB._motor._angle,
@@ -185,9 +184,9 @@ class Plate:
         time.sleep(0.1)  # Attendre un peu pour le rebond
 
         # redescendre les axes a la position initiale
-        self._axisA.move(self._axisA._height - bounce_height - virtualHeight1)
-        self._axisB.move(self._axisB._height - bounce_height - virtualHeight2)
-        self._axisC.move(self._axisC._height - bounce_height - virtualHeight3)
+        self._axisA.move(self._axisA._height - bounce_height )
+        self._axisB.move(self._axisB._height - bounce_height )
+        self._axisC.move(self._axisC._height - bounce_height )
         self._connectionToMicrocontroller.send_angles(
             self._axisA._motor._angle,
             self._axisB._motor._angle,
