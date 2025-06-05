@@ -14,7 +14,7 @@ class Machine:
         self._bounceAutorised = True
         self._last_bounce_time = 0
         self._min_bounce_interval = 0.2  # Intervalle minimum entre les rebonds en secondes
-        self._bounce_offset = 0.4  # Temps d'avance pour déclencher le rebond avant l'impact
+        self._bounce_offset = 0.2  # Temps d'avance pour déclencher le rebond avant l'impact
 
         self._virtualAnglePhi=0
         self._virtualAngleTheta=0
@@ -40,22 +40,28 @@ class Machine:
         #     self._plate.MoveAxisPhi(angle_phi)
 
     def calculate_fall_time(self, height, velocity):
-        """Calcule le temps de chute estimé en fonction de la hauteur et de la vitesse."""
-        g = 9810  # mm/s²
-        if velocity >= 0 or height <= 0:
-            return None
+        """
+        Calcule le temps estimé pour atteindre une certaine hauteur depuis la position actuelle,
+        en tenant compte de la vitesse verticale initiale.
+        - height: position verticale actuelle (en mm, par rapport au sol/caméra)
+        - velocity: vitesse verticale actuelle (en mm/s, positive vers le haut)
+        Retourne le temps (en secondes) pour que la balle atteigne la hauteur 0 (le sol).
+        """
+        g = 9810  # gravité en mm/s²
+        if height <= 0:
+            return None  # La balle est déjà en dessous du sol
         a = 0.5 * g
         b = -velocity
         c = -height
         discriminant = b * b - 4 * a * c
         if discriminant < 0:
-            return None
+            return None  # Pas de solution réelle
         sqrt_disc = math.sqrt(discriminant)
         t1 = (-b + sqrt_disc) / (2 * a)
         t2 = (-b - sqrt_disc) / (2 * a)
-        # On retourne la plus petite solution positive
+        # On retourne la plus grande solution positive (si la balle monte, c’est celle-ci qu’il faut)
         times = [t for t in (t1, t2) if t > 0]
-        return min(times) if times else None
+        return max(times) if times else None
 
     def RegulationBounce(self):
         if self._ball._cam._radius is None:
@@ -72,53 +78,39 @@ class Machine:
 
         # Détection par hauteur et vitesse
         fall_time = self.calculate_fall_time(z, vz)
-        
-        # Hauteur critique en dessous de laquelle on force le rebond
-        critical_height = 100  # mm
-        
-        if self._bounceAutorised:
-            # Cas 1: La balle est déjà très basse
-            if z < critical_height:
-                print(f"💥 Rebond forcé ! (Hauteur critique atteinte: {z:.1f}mm)")
-                self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
-                self._bounceAutorised = False
-                self._last_bounce_time = current_time
-                return
-                
-            # Cas 2: Détection par temps de chute
-            elif fall_time is not None and fall_time < self._bounce_offset:
-                print(f"💥 Rebond déclenché ! (Temps de chute: {fall_time:.3f}s, Offset: {self._bounce_offset:.3f}s)")
-                self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
-                self._bounceAutorised = False
-                self._last_bounce_time = current_time
-                return
+        if vz < 0:
+            
+            if self._bounceAutorised:
+                # Cas 1: La balle est déjà très basse
+                if z < 100:
+                    print(f"💥 Rebond forcé ! (Hauteur critique atteinte: {z:.1f}mm)")
+                    self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
+                    self._bounceAutorised = False
+                    self._last_bounce_time = current_time
+                    return
+                    
+                # Cas 2: Détection par temps de chute
+                elif fall_time is not None and fall_time < self._bounce_offset:
+                    print(f"💥 Rebond déclenché ! (Temps de chute: {fall_time:.3f}s, Offset: {self._bounce_offset:.3f}s)")
+                    self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
+                    self._bounceAutorised = False
+                    self._last_bounce_time = current_time
+                    return                   
 
-        # Bloque le rebond si la balle monte
-        if vz >= 0:
-            return
-
-        # Détection par diamètre (solution de secours)
-        if z < 325 and self._bounceAutorised:
-            print("💥 Rebond déclenché par diamètre !")
-            self.RegulationCenter()
-            self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
-            self._bounceAutorised = False
-            self._last_bounce_time = current_time
-            return
+                # Détection par diamètre (solution de secours)
+                if z < 325 and self._bounceAutorised:
+                    print("💥 Rebond déclenché par diamètre !")
+                    self.RegulationCenter()
+                    self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
+                    self._bounceAutorised = False
+                    self._last_bounce_time = current_time
+                    return
 
         # Réautorisation du rebond si la balle est assez haute
-        if z > 200:
+        if z > 200 and not self._bounceAutorised:
             self._bounceAutorised = True
 
-        # # Contre-réaction expérimentale
-        # delta = 0.2
-        # self._plate._height = self._plate._height - delta 
-        # self._plate._axisA._height = self._plate._axisA._height - delta
-        # self._plate._axisB._height = self._plate._axisB._height - delta
-        # self._plate._axisC._height = self._plate._axisC._height - delta
-        # return self._bounceAutorised
-
-    
+        print(f"Position Z: {z:.1f}mm, Vitesse Z: {vz:.1f}mm/s, Rayon: {d:.1f}px")
 
     def calculate_angles(self):
         """
@@ -174,8 +166,6 @@ class Machine:
         # Clamp pour éviter les dépassements
         theta = max(-angle_max, min(angle_max, theta))
         phi   = max(-angle_max, min(angle_max, phi))
-
- 
         return theta, phi
 
 
