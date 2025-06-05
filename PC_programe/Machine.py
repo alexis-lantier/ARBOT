@@ -14,7 +14,7 @@ class Machine:
         self._bounceAutorised = True
         self._last_bounce_time = 0
         self._min_bounce_interval = 0.2  # Intervalle minimum entre les rebonds en secondes
-        self._bounce_offset = 0.2  # Temps d'avance pour déclencher le rebond avant l'impact
+        self._bounce_offset = 0.1  # Temps d'avance pour déclencher le rebond avant l'impact
 
         self._virtualAnglePhi=0
         self._virtualAngleTheta=0

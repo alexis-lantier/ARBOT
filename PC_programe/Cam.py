@@ -36,6 +36,12 @@ class Cam:
         self._vy_history = deque([0]*10, maxlen=10)
         self._vz_history = deque([0]*10, maxlen=20)
 
+        self._cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # Désactive l'autofocus
+        time.sleep(0.1)  
+        self._cap.set(cv2.CAP_PROP_FOCUS, 300)
+        time.sleep(0.1) 
+        self._cap.set(cv2.CAP_PROP_FOCUS, 350) 
+
     def get_height(self):
         a= -0.0004
         b= 0.1338
@@ -123,6 +129,7 @@ class Cam:
         # Mets à jour la vitesse lissée
         self._ballSpeed = Vector(avg_vx, avg_vy, avg_vz)
         self._previous_position = self._position
+        
 
     def display(self):
         
