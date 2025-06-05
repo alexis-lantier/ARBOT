@@ -41,32 +41,21 @@ class Machine:
 
     def calculate_fall_time(self, height, velocity):
         """Calcule le temps de chute estimé en fonction de la hauteur et de la vitesse."""
-        g = 9810  # Accélération gravitationnelle en mm/s²
-        if velocity >= 0:  # Si la balle monte, on attend qu'elle redescende
+        g = 9810  # mm/s²
+        if velocity >= 0 or height <= 0:
             return None
-        
-        # Équation du second degré pour le temps de chute
-        # h = h0 + v0*t + (1/2)*g*t²
-        # On résout pour h = 0
-        a = g/2
-        b = velocity
-        c = height
-        
-        discriminant = b*b - 4*a*c
+        a = 0.5 * g
+        b = -velocity
+        c = -height
+        discriminant = b * b - 4 * a * c
         if discriminant < 0:
             return None
-            
-        t1 = (-b + math.sqrt(discriminant)) / (2*a)
-        t2 = (-b - math.sqrt(discriminant)) / (2*a)
-        
-        # On prend la solution positive la plus petite
-        if t1 > 0 and t2 > 0:
-            return min(t1, t2)
-        elif t1 > 0:
-            return t1
-        elif t2 > 0:
-            return t2
-        return None
+        sqrt_disc = math.sqrt(discriminant)
+        t1 = (-b + sqrt_disc) / (2 * a)
+        t2 = (-b - sqrt_disc) / (2 * a)
+        # On retourne la plus petite solution positive
+        times = [t for t in (t1, t2) if t > 0]
+        return min(times) if times else None
 
     def RegulationBounce(self):
         if self._ball._cam._radius is None:
@@ -103,6 +92,10 @@ class Machine:
                 self._bounceAutorised = False
                 self._last_bounce_time = current_time
                 return
+
+        # Bloque le rebond si la balle monte
+        if vz >= 0:
+            return
 
         # Détection par diamètre (solution de secours)
         if z < 325 and self._bounceAutorised:
@@ -185,7 +178,6 @@ class Machine:
         print (f"x {ex} y {ey} ")
  
         return theta, phi
-    
 
 
-    
+
