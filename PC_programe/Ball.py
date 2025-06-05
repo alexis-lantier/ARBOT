@@ -18,8 +18,4 @@ class Ball:
         self._ZPosition = self._cam.GetPosition().z
         self._speed = self._cam.GetSpeed()
 
-    def update_loop(self, stop_event):
-        while not stop_event.is_set():
-            self.Update()
-            stop_event.wait(0.01)
 

@@ -6,7 +6,7 @@ from collections import deque
 
 WIDTH = 640
 HEIGHT = 480
-CAMERA_INDEX = 1
+CAMERA_INDEX = 0
 
 class Cam:
     def __init__(self):
@@ -88,6 +88,7 @@ class Cam:
         return self._position
 
     def Update(self):
+        
         """Met à jour la position et la vitesse de la balle avec lissage."""
         ret, frame = self._cap.read()
         if not ret:
@@ -174,8 +175,3 @@ class Cam:
             self.display()
 
             #v2
-
-    def update_loop(self, stop_event):
-        while not stop_event.is_set():
-
-            self.Update()

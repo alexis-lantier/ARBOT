@@ -175,7 +175,6 @@ class Machine:
         theta = max(-angle_max, min(angle_max, theta))
         phi   = max(-angle_max, min(angle_max, phi))
 
-        print (f"x {ex} y {ey} ")
  
         return theta, phi
 
