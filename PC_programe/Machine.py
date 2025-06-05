@@ -73,7 +73,7 @@ class Machine:
         self._bounceAutorised = True
         self._last_bounce_time = 0
         self._min_bounce_interval = 0.2  # Intervalle minimum entre les rebonds en secondes
-        self._bounce_offset = 0.1  # Temps d'avance pour déclencher le rebond avant l'impact
+        self._bounce_offset = 0.105  # Temps d'avance pour déclencher le rebond avant l'impact
 
         self._virtualAnglePhi=0
         self._virtualAngleTheta=0
@@ -99,6 +99,7 @@ class Machine:
    
 
     def RegulationBounce(self):
+
         if self._ball._cam._radius is None:
             return
 
@@ -117,7 +118,7 @@ class Machine:
             self._predictor.add_prediction(z, vz)
             if self._bounceAutorised:
                 # Cas 1: La balle est très basse
-                if(1):
+                if(0):
                     if z < 100:
                         print(f"💥 Rebond forcé ! (Hauteur critique atteinte: {z:.1f}mm)")
                         self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
@@ -156,6 +157,7 @@ class Machine:
         """
         Calcule les angles theta et phi à partir de la position (erreur) et de la vitesse (PD)
         """
+        
         z_max = 365.6
         z = self._ball._cam._position.z
  
@@ -174,8 +176,8 @@ class Machine:
  
         # Initialisation de l'historique si ce n'est pas déjà fait
         if not hasattr(self, "_vx_history"):
-            self._vx_history = [0.0] * 2
-            self._vy_history = [0.0] * 2
+            self._vx_history = [0.0] * 5
+            self._vy_history = [0.0] * 5
             self._history_index = 0
  
         # Normalisation de z
@@ -184,11 +186,11 @@ class Machine:
         # Mise à jour de l'historique des vitesses
         self._vx_history[self._history_index] = vx
         self._vy_history[self._history_index] = vy
-        self._history_index = (self._history_index + 1) % 2
+        self._history_index = (self._history_index + 1) % 5
  
         # Moyenne glissante
-        avg_vx = sum(self._vx_history) / 2
-        avg_vy = sum(self._vy_history) / 2
+        avg_vx = sum(self._vx_history) / 5
+        avg_vy = sum(self._vy_history) / 5
 
         if 1:
             avg_vx = vx
@@ -208,6 +210,7 @@ class Machine:
         theta = max(-angle_max, min(angle_max, theta))
         phi   = max(-angle_max, min(angle_max, phi))
         return theta, phi
+    
 
 
 

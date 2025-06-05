@@ -37,15 +37,15 @@ class ConnectionToMicrocontroller:
         if DEBUG:
             print(f"Trame envoyée (debug) : {trame.strip()}")
 
-        # Attente de confirmation
-        while True:
-            line = self.ser.readline().decode().strip()
+        # # Attente de confirmation
+        # while True:
+        #     line = self.ser.readline().decode().strip()
             
-            if line:
-                if DEBUG:
-                    print(f"ESP32 → {line}")
-                if "ANGLES REÇUS" in line:
-                    break
+        #     if line:
+        #         if DEBUG:
+        #             print(f"ESP32 → {line}")
+        #         if "ANGLES REÇUS" in line:
+        #             break
      
 if __name__ == "__main__":
     conn = ConnectionToMicrocontroller()
