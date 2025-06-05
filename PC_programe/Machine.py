@@ -14,7 +14,7 @@ class Machine:
         self._bounceAutorised = True
         self._last_bounce_time = 0
         self._min_bounce_interval = 0.2  # Intervalle minimum entre les rebonds en secondes
-        self._bounce_offset = 0.1 # Temps d'avance pour déclencher le rebond avant l'impact
+        self._bounce_offset = 0.4  # Temps d'avance pour déclencher le rebond avant l'impact
 
         self._virtualAnglePhi=0
         self._virtualAngleTheta=0
@@ -34,116 +34,91 @@ class Machine:
     def RegulationCenter(self):
         self._virtualAngleTheta,self._virtualAnglePhi = self.calculate_angles()
        
+        # if 0.05 < abs(self._plate._angleTheta-angle_teta) :
+        #     self._plate.MoveAxisTheta(angle_teta)
+        # if 0.05< abs(self._plate._anglePhi-angle_phi) :
+        #     self._plate.MoveAxisPhi(angle_phi)
 
     def calculate_fall_time(self, height, velocity):
-        """
-        Calcule le temps de chute estimé en fonction de la hauteur et de la vitesse.
-        Retourne le temps en secondes avant impact au sol, ou None si non calculable.
-        """
-        g = 9810  # Accélération gravitationnelle en mm/s²
-        
-        # Protection contre les valeurs aberrantes
-        if height is None or velocity is None:
-            return None
-        
-        # Si la balle monte ou si hauteur négative, pas de calcul
+        """Calcule le temps de chute estimé en fonction de la hauteur et de la vitesse."""
+        g = 9810  # mm/s²
         if velocity >= 0 or height <= 0:
             return None
-        
-        # Ajout d'une hauteur minimale pour éviter les erreurs de calcul
-        height = max(10.0, height)
-        
-        # Équation du second degré pour le temps de chute: h = h0 + v0*t + (1/2)*g*t²
-        a = g/2
-        b = velocity
-        c = height
-        
-        # Calcul du discriminant
-        discriminant = b*b - 4*a*c
+        a = 0.5 * g
+        b = -velocity
+        c = -height
+        discriminant = b * b - 4 * a * c
         if discriminant < 0:
             return None
-            
-        # Calcul des solutions
-        t1 = (-b + math.sqrt(discriminant)) / (2*a)
-        t2 = (-b - math.sqrt(discriminant)) / (2*a)
-        
-        # On prend la solution positive la plus petite
-        if t1 > 0 and t2 > 0:
-            return min(t1, t2)
-        elif t1 > 0:
-            return t1
-        elif t2 > 0:
-            return t2
-        
-        return None
+        sqrt_disc = math.sqrt(discriminant)
+        t1 = (-b + sqrt_disc) / (2 * a)
+        t2 = (-b - sqrt_disc) / (2 * a)
+        # On retourne la plus petite solution positive
+        times = [t for t in (t1, t2) if t > 0]
+        return min(times) if times else None
 
-#modif
     def RegulationBounce(self):
-        """
-        Détecte quand la balle va toucher le sol et déclenche un rebond au moment optimal.
-        Utilise plusieurs méthodes de détection pour une meilleure fiabilité.
-        """
-        # Vérification que la balle est bien détectée
         if self._ball._cam._radius is None:
             return
-        
-        # Récupération des données actuelles de la balle
+
         current_time = time.time()
         z = self._ball._cam._position.z
         vz = self._ball._cam._ballSpeed.z
-        
-        # Protection contre les valeurs aberrantes
-        if z is None or vz is None or z < 0:  # Protection contre les hauteurs négatives
-            return
-        
+        d = self._ball._cam._radius
+
         # Vérification de l'intervalle minimum entre les rebonds
         if current_time - self._last_bounce_time < self._min_bounce_interval:
             return
-        
-        # Paramètres de configuration
-        critical_height = 100  # mm, hauteur critique pour forcer un rebond
-        bounce_trigger_time = 0.15  # secondes avant impact pour déclencher le rebond
-        
-        # Réautorisation du rebond si la balle est assez haute
-        if z > 200:
-            self._bounceAutorised = True
-        
-        # Si les rebonds sont autorisés
-        if self._bounceAutorised:
-            # Détection par hauteur et vitesse (méthode principale)
-            print(f"Position actuelle: z={z:.1f}mm, vitesse={vz:.1f}mm/s")
-            fall_time = self.calculate_fall_time(z, vz)
 
-            if fall_time is not None:
-                print(f"Temps de chute estimé: {fall_time:.3f}s")
-            
-            # Mise à jour des angles virtuels avant de faire le rebond
-            self._virtualAngleTheta, self._virtualAnglePhi = self.calculate_angles()
-            
-            # Décision unique sur la méthode de rebond à utiliser
-            rebond_message = None
-            
-            if z < critical_height and vz < -100:
-                # Cas 1: La balle est très basse et descend rapidement
-                rebond_message = f"💥 Rebond forcé ! (Hauteur critique: {z:.1f}mm, vitesse: {vz:.1f}mm/s)"
-            elif fall_time is not None:
-                # Ajustement avec l'offset configuré
-                adjusted_fall_time = fall_time - self._bounce_offset
-                
-                # Cas 2: Détection par temps de chute estimé
-                if adjusted_fall_time < bounce_trigger_time:
-                    rebond_message = f"💥 Rebond anticipé ! (Impact dans: {fall_time:.3f}s, Ajusté: {adjusted_fall_time:.3f}s)"
-            elif z < 150 and vz < -300:
-                # Cas 3: Détection de secours par combinaison hauteur/vitesse
-                rebond_message = f"💥 Rebond de secours ! (z={z:.1f}mm, vz={vz:.1f}mm/s)"
-            
-            # Si un rebond a été décidé, l'exécuter
-            if rebond_message:
-                print(rebond_message)
+        # Détection par hauteur et vitesse
+        fall_time = self.calculate_fall_time(z, vz)
+        
+        # Hauteur critique en dessous de laquelle on force le rebond
+        critical_height = 100  # mm
+        
+        if self._bounceAutorised:
+            # Cas 1: La balle est déjà très basse
+            if z < critical_height:
+                print(f"💥 Rebond forcé ! (Hauteur critique atteinte: {z:.1f}mm)")
                 self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
                 self._bounceAutorised = False
                 self._last_bounce_time = current_time
-          
+                return
+                
+            # Cas 2: Détection par temps de chute
+            elif fall_time is not None and fall_time < self._bounce_offset:
+                print(f"💥 Rebond déclenché ! (Temps de chute: {fall_time:.3f}s, Offset: {self._bounce_offset:.3f}s)")
+                self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
+                self._bounceAutorised = False
+                self._last_bounce_time = current_time
+                return
+
+        # Bloque le rebond si la balle monte
+        if vz >= 0:
+            return
+
+        # Détection par diamètre (solution de secours)
+        if z < 325 and self._bounceAutorised:
+            print("💥 Rebond déclenché par diamètre !")
+            self.RegulationCenter()
+            self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
+            self._bounceAutorised = False
+            self._last_bounce_time = current_time
+            return
+
+        # Réautorisation du rebond si la balle est assez haute
+        if z > 200:
+            self._bounceAutorised = True
+
+        # # Contre-réaction expérimentale
+        # delta = 0.2
+        # self._plate._height = self._plate._height - delta 
+        # self._plate._axisA._height = self._plate._axisA._height - delta
+        # self._plate._axisB._height = self._plate._axisB._height - delta
+        # self._plate._axisC._height = self._plate._axisC._height - delta
+        # return self._bounceAutorised
+
+    
 
     def calculate_angles(self):
         """
@@ -188,7 +163,7 @@ class Machine:
             avg_vy = vy
  
         # Gains à ajuster selon ton système
-        Kp = 0.005
+        Kp = 0.015
         Kd = 0.025  # Gain dérivé vitesse
         Kp=0
  
@@ -198,9 +173,11 @@ class Machine:
  
         # Clamp pour éviter les dépassements
         theta = max(-angle_max, min(angle_max, theta))
-        phi   = max(-angle_max, min(angle_max, phi)) 
+        phi   = max(-angle_max, min(angle_max, phi))
+
+        print (f"x {ex} y {ey} ")
+ 
         return theta, phi
-    
 
 
-    
+

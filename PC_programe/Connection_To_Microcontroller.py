@@ -6,7 +6,7 @@ DEBUG = False
 
 class ConnectionToMicrocontroller:
     # Angles en degrés
-    ANGLE_MIN = -40
+    ANGLE_MIN = -45
     ANGLE_MAX = 120
 
     def __init__(self, port='COM5', baudrate=115200):
