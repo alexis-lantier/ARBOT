@@ -34,13 +34,15 @@ class BallPredictor:
         if t_chute is not None:
             t_final = now + t_chute
             self.predictions.append(t_final)
-            if len(self.predictions) > 5:
+            if len(self.predictions) > 10:
                 self.predictions.pop(0)
+            print(f"Temps de chute: {t_chute:.2f} secondes now : {now:.2f} t_final: {t_final:.2f}")
  
     def get_activation_time(self):
         if not self.predictions:
             return None
         t_f_moyen = sum(self.predictions) / len(self.predictions)
+        print(f"Temps moyen de chute: {t_f_moyen:.2f} secondes")
         return t_f_moyen - self.offsetmot
  
     def should_activate_motor(self):
@@ -71,7 +73,7 @@ class Machine:
         self._bounceAutorised = True
         self._last_bounce_time = 0
         self._min_bounce_interval = 0.2  # Intervalle minimum entre les rebonds en secondes
-        self._bounce_offset = 0.3  # Temps d'avance pour déclencher le rebond avant l'impact
+        self._bounce_offset = 0.1  # Temps d'avance pour déclencher le rebond avant l'impact
 
         self._virtualAnglePhi=0
         self._virtualAngleTheta=0
@@ -108,14 +110,14 @@ class Machine:
             vz = 0
 
         d = self._ball._cam._radius
-
+        
         
  
         if vz < 0:
             self._predictor.add_prediction(z, vz)
             if self._bounceAutorised:
                 # Cas 1: La balle est très basse
-                if(0):
+                if(1):
                     if z < 100:
                         print(f"💥 Rebond forcé ! (Hauteur critique atteinte: {z:.1f}mm)")
                         self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
@@ -149,8 +151,6 @@ class Machine:
         # Réautorisation du rebond si la balle est assez haute
         if z > 100 and not self._bounceAutorised:
             self._bounceAutorised = True
-
-        print(f"Position Z: {z:.1f}mm, Vitesse Z: {vz:.1f}mm/s, Rayon: {d:.1f}px")
 
     def calculate_angles(self):
         """

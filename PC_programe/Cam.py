@@ -153,6 +153,9 @@ class Cam:
         # Mets à jour la vitesse lissée
         self._ballSpeed = Vector(avg_vx, avg_vy, avg_vz)
         self._previous_position = self._position
+        if self._position.GetZvalue() is not None:
+            if self._position.GetZvalue() > 350:
+                self._radius = None  # Réinitialise le rayon si la balle est trop haute
         
         
 
