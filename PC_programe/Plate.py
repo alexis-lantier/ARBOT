@@ -168,7 +168,7 @@ class Plate:
     def MakeOneBounce(self,virtualAngleTheta, virtualAnglePhi):
 
         
-        bounce_height = 30
+        bounce_height = 40
     
         self.MoveAxisPhi(virtualAnglePhi)
         self.MoveAxisTheta(virtualAngleTheta)

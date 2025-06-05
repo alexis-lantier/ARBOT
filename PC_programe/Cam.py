@@ -28,19 +28,25 @@ class Cam:
         self._cap.set(4, HEIGHT)
 
         # Plage de couleurs pour détecter la balle orange
-        self._lower_orange = np.array([5, 150, 150])
+        self._lower_orange = np.array([5, 60, 60])
         self._upper_orange = np.array([25, 255, 255])
 
         # Historiques pour lisser les vitesses
-        self._vx_history = deque([0]*10, maxlen=10)
-        self._vy_history = deque([0]*10, maxlen=10)
-        self._vz_history = deque([0]*10, maxlen=20)
+        self._vx_history = deque([0]*4, maxlen=4)
+        self._vy_history = deque([0]*4, maxlen=4)
+        self._vz_history = deque([0]*4, maxlen=4)
 
+        
         self._cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # Désactive l'autofocus
         time.sleep(0.1)  
         self._cap.set(cv2.CAP_PROP_FOCUS, 300)
         time.sleep(0.1) 
         self._cap.set(cv2.CAP_PROP_FOCUS, 350) 
+        #self._cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
+        self._cap.set(cv2.CAP_PROP_EXPOSURE, -4)
+        self._cap.set(cv2.CAP_PROP_EXPOSURE, -6)
+        self._cap.set(cv2.CAP_PROP_BRIGHTNESS, 300)
+
 
     def get_height(self):
         a= -0.0004
@@ -51,13 +57,31 @@ class Cam:
         return a*x**3 + b*x**2 + c*x + d
 
     def detect_ball(self, frame):
-        mask = cv2.inRange(cv2.cvtColor(frame, cv2.COLOR_BGR2HSV), self._lower_orange, self._upper_orange)
-        mask = cv2.dilate(cv2.erode(mask, None, 1), None, 1)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+        # Masque plus doux
+        mask = cv2.inRange(hsv, self._lower_orange, self._upper_orange)
+        mask = cv2.GaussianBlur(mask, (5, 5), 0)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
         if contours:
-            ((x, y), r) = cv2.minEnclosingCircle(max(contours, key=cv2.contourArea))
+            best_contour = max(contours, key=cv2.contourArea)
+
+            # Option 1 : Diamètre du cercle englobant
+            ((x, y), r) = cv2.minEnclosingCircle(best_contour)
+
+            # Option 2 : Diamètre estimé par ellipse (plus précis si la balle n’est pas parfaitement ronde)
+            if len(best_contour) >= 5:
+                ellipse = cv2.fitEllipse(best_contour)
+                major_axis = max(ellipse[1])  # hauteur ou largeur
+                return (int(x), int(y)), major_axis / 2  # rayon + précis
+
             if r > 5:
-                return (int(x), int(y)), r  # Retourne centre et diamètre
+                return (int(x), int(y)), r  # Rayon brut
+
         return None, None
 
     def calculate_position(self, center, radius):
@@ -130,6 +154,7 @@ class Cam:
         self._ballSpeed = Vector(avg_vx, avg_vy, avg_vz)
         self._previous_position = self._position
         
+        
 
     def display(self):
         
@@ -149,6 +174,7 @@ class Cam:
             pts.appendleft(center)
             cv2.circle(frame, center, int(self._radius), (0, 255, 255), 2)
             cv2.circle(frame, center, 3, (0, 0, 255), -1)
+            
 
         for i in range(1, len(pts)):
             if pts[i - 1] is None or pts[i] is None:

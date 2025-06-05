@@ -4,6 +4,63 @@ from Cam import Cam
 import math
 import time
 
+#########################################################
+
+class BallPredictor:
+    def __init__(self, offsetmot=0.1):
+        self.g = 9810  # mm/s²
+        self.offsetmot = offsetmot
+        self.predictions = []
+        self.activation_done = False
+ 
+    def calculate_fall_time(self, height, velocity):
+        if height <= 0:
+            return None
+        a = 0.5 * self.g
+        b = -velocity
+        c = -height
+        discriminant = b * b - 4 * a * c
+        if discriminant < 0:
+            return None
+        sqrt_disc = math.sqrt(discriminant)
+        t1 = (-b + sqrt_disc) / (2 * a)
+        t2 = (-b - sqrt_disc) / (2 * a)
+        times = [t for t in (t1, t2) if t > 0]
+        return max(times) if times else None
+ 
+    def add_prediction(self, height, velocity):
+        now = time.time()
+        t_chute = self.calculate_fall_time(height, velocity)
+        if t_chute is not None:
+            t_final = now + t_chute
+            self.predictions.append(t_final)
+            if len(self.predictions) > 5:
+                self.predictions.pop(0)
+ 
+    def get_activation_time(self):
+        if not self.predictions:
+            return None
+        t_f_moyen = sum(self.predictions) / len(self.predictions)
+        return t_f_moyen - self.offsetmot
+ 
+    def should_activate_motor(self):
+        if self.activation_done:
+            return False
+        t_activation = self.get_activation_time()
+        if t_activation and time.time() >= t_activation:
+            self.activation_done = True
+            return True
+        return False
+ 
+    def reset(self):
+        self.predictions.clear()
+        self.activation_done = False
+
+
+
+##################################################################
+
+
 
 class Machine:
 
@@ -14,10 +71,12 @@ class Machine:
         self._bounceAutorised = True
         self._last_bounce_time = 0
         self._min_bounce_interval = 0.2  # Intervalle minimum entre les rebonds en secondes
-        self._bounce_offset = 0.1  # Temps d'avance pour déclencher le rebond avant l'impact
+        self._bounce_offset = 0.3  # Temps d'avance pour déclencher le rebond avant l'impact
 
         self._virtualAnglePhi=0
         self._virtualAngleTheta=0
+
+        self._predictor = BallPredictor(offsetmot=self._bounce_offset)
 
     def GetAnglePhi(self):
         # Get the angle phi from the Ball object
@@ -34,34 +93,8 @@ class Machine:
     def RegulationCenter(self):
         self._virtualAngleTheta,self._virtualAnglePhi = self.calculate_angles()
        
-        # if 0.05 < abs(self._plate._angleTheta-angle_teta) :
-        #     self._plate.MoveAxisTheta(angle_teta)
-        # if 0.05< abs(self._plate._anglePhi-angle_phi) :
-        #     self._plate.MoveAxisPhi(angle_phi)
 
-    def calculate_fall_time(self, height, velocity):
-        """
-        Calcule le temps estimé pour atteindre une certaine hauteur depuis la position actuelle,
-        en tenant compte de la vitesse verticale initiale.
-        - height: position verticale actuelle (en mm, par rapport au sol/caméra)
-        - velocity: vitesse verticale actuelle (en mm/s, positive vers le haut)
-        Retourne le temps (en secondes) pour que la balle atteigne la hauteur 0 (le sol).
-        """
-        g = 9810  # gravité en mm/s²
-        if height <= 0:
-            return None  # La balle est déjà en dessous du sol
-        a = 0.5 * g
-        b = -velocity
-        c = -height
-        discriminant = b * b - 4 * a * c
-        if discriminant < 0:
-            return None  # Pas de solution réelle
-        sqrt_disc = math.sqrt(discriminant)
-        t1 = (-b + sqrt_disc) / (2 * a)
-        t2 = (-b - sqrt_disc) / (2 * a)
-        # On retourne la plus grande solution positive (si la balle monte, c’est celle-ci qu’il faut)
-        times = [t for t in (t1, t2) if t > 0]
-        return max(times) if times else None
+   
 
     def RegulationBounce(self):
         if self._ball._cam._radius is None:
@@ -69,45 +102,52 @@ class Machine:
 
         current_time = time.time()
         z = self._ball._cam._position.z
+        
         vz = self._ball._cam._ballSpeed.z
+        if abs(vz) < 20:
+            vz = 0
+
         d = self._ball._cam._radius
 
-        # Vérification de l'intervalle minimum entre les rebonds
-        if current_time - self._last_bounce_time < self._min_bounce_interval:
-            return
-
-        # Détection par hauteur et vitesse
-        fall_time = self.calculate_fall_time(z, vz)
+        
+ 
         if vz < 0:
-            
+            self._predictor.add_prediction(z, vz)
             if self._bounceAutorised:
-                # Cas 1: La balle est déjà très basse
-                if z < 100:
-                    print(f"💥 Rebond forcé ! (Hauteur critique atteinte: {z:.1f}mm)")
-                    self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
-                    self._bounceAutorised = False
-                    self._last_bounce_time = current_time
-                    return
-                    
-                # Cas 2: Détection par temps de chute
-                elif fall_time is not None and fall_time < self._bounce_offset:
-                    print(f"💥 Rebond déclenché ! (Temps de chute: {fall_time:.3f}s, Offset: {self._bounce_offset:.3f}s)")
-                    self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
-                    self._bounceAutorised = False
-                    self._last_bounce_time = current_time
-                    return                   
+                # Cas 1: La balle est très basse
+                if(0):
+                    if z < 100:
+                        print(f"💥 Rebond forcé ! (Hauteur critique atteinte: {z:.1f}mm)")
+                        self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
+                        self._bounceAutorised = False
+                        self._last_bounce_time = current_time
+                        self._predictor.reset()
+                        return
+ 
+                # Cas 2: Prédiction basée sur plusieurs hauteurs
+                if(1):
+                        if self._predictor.should_activate_motor():
+                            print(f"💥 Rebond déclenché par prédiction multiple !")
+                            self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
+                            self._bounceAutorised = False
+                            self._last_bounce_time = current_time
+                            self._predictor.reset()
+                        return
+ 
+                # Cas 3: Détection de secours par diamètre
+                if(0):
+                    if z < 290:
+                        print("💥 Rebond déclenché par diamètre !")
+                        self.RegulationCenter()
+                        self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
+                        self._bounceAutorised = False
+                        self._last_bounce_time = current_time
+                        self._predictor.reset()
+                        return
 
-                # Détection par diamètre (solution de secours)
-                if z < 325 and self._bounceAutorised:
-                    print("💥 Rebond déclenché par diamètre !")
-                    self.RegulationCenter()
-                    self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
-                    self._bounceAutorised = False
-                    self._last_bounce_time = current_time
-                    return
-
+        
         # Réautorisation du rebond si la balle est assez haute
-        if z > 200 and not self._bounceAutorised:
+        if z > 100 and not self._bounceAutorised:
             self._bounceAutorised = True
 
         print(f"Position Z: {z:.1f}mm, Vitesse Z: {vz:.1f}mm/s, Rayon: {d:.1f}px")
@@ -155,9 +195,10 @@ class Machine:
             avg_vy = vy
  
         # Gains à ajuster selon ton système
-        Kp = 0.015
-        Kd = 0.025  # Gain dérivé vitesse
-        Kp=0
+        Kp = 0.05
+        Kd = 0.05  # Gain dérivé vitesse
+        Kd=0
+        
  
         # Régulation PD
         theta = - (Kp * ex + Kd * avg_vx) 
