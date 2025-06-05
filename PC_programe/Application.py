@@ -21,8 +21,8 @@ class Application:
         #S'assurer d'arriver exactement à la valeur cible
         self._machine._plate.MoveAxisHeigh(target)
         
-    def Regulation(self):
-        self._machine._ball.Update()
+    def Regulation(self):                      
+        self._machine._ball.Update()  # Mettre à jour la position de la balle       
         self._machine.RegulationBounce()
         self._machine.RegulationCenter()
 
@@ -33,12 +33,12 @@ class Application:
     def Run(self):
 
         stop_event = Event()
-        update_thread = Thread(
+        display_thread = Thread(
             target=self._machine._ball._cam.display_loop,  
             args=(stop_event,),
             daemon=True
         )
-        update_thread.start()
+        display_thread.start()
         self.Ramp(50.9)
         while True:
             self.Regulation()
@@ -48,7 +48,7 @@ class Application:
                 stop_event.set()
                 self.Ramp(0)
                 break
-        update_thread.join()
+        display_thread.join()
 
         self._machine._ball._cam.release()
         

@@ -192,7 +192,9 @@ class Plate:
             self._axisB._motor._angle,
             self._axisC._motor._angle,
         )
-        print("💥 Rebond déclenché !")
+
+        self.MoveAxisPhi(0)
+        self.MoveAxisTheta(0)
 
     def GetAnglePhi(self):
         return self._anglePhi

@@ -174,3 +174,8 @@ class Cam:
             self.display()
 
             #v2
+
+    def update_loop(self, stop_event):
+        while not stop_event.is_set():
+
+            self.Update()
