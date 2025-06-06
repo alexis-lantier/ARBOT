@@ -29,7 +29,7 @@ class Cam:
         self._cap.set(4, HEIGHT)
 
         # Plage de couleurs pour détecter la balle orange
-        self._lower_orange = np.array([5, 100, 100])
+        self._lower_orange = np.array([5, 80, 80])
         self._upper_orange = np.array([25, 255, 255])
 
         # Historiques pour lisser les vitesses
