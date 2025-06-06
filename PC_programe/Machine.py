@@ -107,7 +107,7 @@ class Machine:
 
         current_time = time.time()
         z = self._ball._cam._position.z
-        zoffset = 0  # Offset pour la hauteur de la balle
+        zoffset = 20  # Offset pour la hauteur de la balle
         z=z- zoffset
         
         vz = self._ball._cam._ballSpeed.z
@@ -128,7 +128,7 @@ class Machine:
                 # Cas 2: Prédiction basée sur plusieurs hauteurs
                 if(1):
                         if self._predictor.should_activate_motor():
-                            print(f"💥 Rebond déclenché par prédiction multiple !")
+                            print(f"💥 Rebond déclenché par prédiction multiple !{time.time()}")
                             self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
                             self._bounceAutorised = False
                             self._last_bounce_time = current_time
@@ -137,8 +137,8 @@ class Machine:
  
                 # Cas 3: Détection de secours par diamètre
                 if(1):
-                    if z < 300:
-                        print("💥 Rebond déclenché par diamètre !")
+                    if z < 310:
+                        print(f"💥 Rebond déclenché par diamètre !{time.time()}")
                         self.RegulationCenter()
                         self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
                         self._bounceAutorised = False
@@ -146,7 +146,7 @@ class Machine:
                         self._predictor.reset()
                         return
         # Réautorisation du rebond si la balle est assez haute
-        if z > 100 and not self._bounceAutorised:
+        if z > 40 and not self._bounceAutorised:
             self._bounceAutorised = True
 
     def calculate_angles(self):
