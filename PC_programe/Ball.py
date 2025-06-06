@@ -11,11 +11,9 @@ class Ball:
         self._ZPosition = 0
 
     def Update(self):
-    
+
         self._cam.Update()
         self._XPosition = self._cam.GetPosition().x
         self._YPosition = self._cam.GetPosition().y
         self._ZPosition = self._cam.GetPosition().z
         self._speed = self._cam.GetSpeed()
-
-

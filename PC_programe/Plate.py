@@ -11,11 +11,13 @@ DEBUG = False
 
 
 class Plate:
-    def __init__(self,port='COM5', baudrate=115200):
+    def __init__(self, port="COM5", baudrate=115200):
         self._anglePhi = 0
         self._angleTheta = 0
         self._height = 0
-        self._connectionToMicrocontroller = ConnectionToMicrocontroller( port=port, baudrate=baudrate)
+        self._connectionToMicrocontroller = ConnectionToMicrocontroller(
+            port=port, baudrate=baudrate
+        )
         self._axisA = Axis()
         self._axisB = Axis()
         self._axisC = Axis()
@@ -34,7 +36,7 @@ class Plate:
         new_valueh2 = self._axisB._height + AdditionalHeight
         new_valueh3 = self._axisC._height + AdditionalHeight
 
-        #Vérifier si la nouvelle hauteur est dans les limites
+        # Vérifier si la nouvelle hauteur est dans les limites
         if not (
             MIN_H <= new_valueh1 <= MAX_H
             and MIN_H <= new_valueh2 <= MAX_H
@@ -42,7 +44,6 @@ class Plate:
         ):
             print("La nouvelle hauteur dépasse les limites autorisées.")
             return
-        
 
         self._axisA.move(new_valueh1)
         self._axisB.move(new_valueh2)
@@ -75,11 +76,7 @@ class Plate:
             if any(h < MIN_H_FOR_ANGLE or h > MAX_H_FOR_ANGLE for h in [h1, h2, h3]):
                 return [1e6, 1e6, 1e6]
 
-            eq1 = (
-                0.5 * np.arcsin(h1 / d2_val)
-                - 0.5 * np.arcsin(h2 / d2_val)
-                - phi_val
-            )
+            eq1 = 0.5 * np.arcsin(h1 / d2_val) - 0.5 * np.arcsin(h2 / d2_val) - phi_val
             eq2 = (
                 -0.5 * np.arcsin(h1 / d1_val)
                 - 0.5 * np.arcsin(h2 / d1_val)
@@ -90,13 +87,11 @@ class Plate:
             return [eq1, eq2, eq3]
 
         guesses = [
-            [50, 50, 50],  
+            [50, 50, 50],
             [z_val, z_val, z_val],
             [MAX_H_FOR_ANGLE, MIN_H_FOR_ANGLE, z_val],
             [MIN_H_FOR_ANGLE, MAX_H_FOR_ANGLE, z_val],
         ]
-
-       
 
         lower_bounds = [MIN_H, MIN_H, MIN_H]
         upper_bounds = [MAX_H, MAX_H, MAX_H]
@@ -106,19 +101,16 @@ class Plate:
                 guess,
                 bounds=(lower_bounds, upper_bounds),
                 xtol=1e-3,
-                max_nfev=100000
+                max_nfev=100000,
             )
             if result.success:
                 h1, h2, h3 = result.x
-                if DEBUG : 
+                if DEBUG:
                     print(f"Solution trouvée : h1={h1:.2f}, h2={h2:.2f}, h3={h3:.2f}")
                 return h1, h2, h3  # <- RETURN ici
 
         print("Pas de solution trouvée dans les bornes.")
         return None  # <- RETURN ici si rien trouvé
-
-
-
 
     def MoveAxisPhi(self, angle):
 
@@ -128,7 +120,7 @@ class Plate:
         if not (MIN_H <= h1 <= MAX_H and MIN_H <= h2 <= MAX_H and MIN_H <= h3 <= MAX_H):
             print("La nouvelle hauteur dépasse les limites autorisées.")
             return
-        
+
         self._axisA.move(h1)
         self._axisB.move(h2)
         self._axisC.move(h3)
@@ -146,11 +138,11 @@ class Plate:
     def MoveAxisTheta(self, angle):
 
         h1, h2, h3 = self.CalculateHeightBasedOnAngle(self._anglePhi, angle)
-        #Check if the calculated heights are within the limits
+        # Check if the calculated heights are within the limits
         if not (MIN_H <= h1 <= MAX_H and MIN_H <= h2 <= MAX_H and MIN_H <= h3 <= MAX_H):
             print("La nouvelle hauteur dépasse les limites autorisées.")
             return
-        
+
         self._axisA.move(h1)
         self._axisB.move(h2)
         self._axisC.move(h3)
@@ -165,15 +157,14 @@ class Plate:
             self._axisC._motor._angle,
         )
 
-    def MakeOneBounce(self,virtualAngleTheta, virtualAnglePhi):
+    def MakeOneBounce(self, virtualAngleTheta, virtualAnglePhi):
 
-        
         bounce_height = 60
-    
+
         self.MoveAxisPhi(virtualAnglePhi)
         self.MoveAxisTheta(virtualAngleTheta)
 
-        self._axisA.move(self._axisA._height + bounce_height )
+        self._axisA.move(self._axisA._height + bounce_height)
         self._axisB.move(self._axisB._height + bounce_height)
         self._axisC.move(self._axisC._height + bounce_height)
         self._connectionToMicrocontroller.send_angles(
@@ -184,9 +175,9 @@ class Plate:
         time.sleep(0.1)  # Attendre un peu pour le rebond
 
         # redescendre les axes a la position initiale
-        self._axisA.move(self._axisA._height - bounce_height )
-        self._axisB.move(self._axisB._height - bounce_height )
-        self._axisC.move(self._axisC._height - bounce_height )
+        self._axisA.move(self._axisA._height - bounce_height)
+        self._axisB.move(self._axisB._height - bounce_height)
+        self._axisC.move(self._axisC._height - bounce_height)
         self._connectionToMicrocontroller.send_angles(
             self._axisA._motor._angle,
             self._axisB._motor._angle,
