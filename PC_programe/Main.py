@@ -35,7 +35,7 @@ def main():
         app.Test()
     else:
         app.Run()
-    plt.subplot(2, 1, 1)
+    plt.subplot(2, 1, 1)# y'a un soucis au début trop grands valeurs apres on voit rien enlever les 10 premiers points
     plt.plot(app._machine._ball._cam._timePlot, app._machine._ball._cam._zpositionPlot, 'b-', label='Position Z')
     plt.title('Hauteur de la balle en fonction du temps')
     plt.ylabel('Hauteur (mm)')

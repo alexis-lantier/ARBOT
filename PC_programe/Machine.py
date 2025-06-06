@@ -107,7 +107,7 @@ class Machine:
 
         current_time = time.time()
         z = self._ball._cam._position.z
-        zoffset = 20  # Offset pour la hauteur de la balle
+        zoffset = 50  # Offset pour la hauteur de la balle
         z=z- zoffset
         
         vz = self._ball._cam._ballSpeed.z
@@ -193,7 +193,7 @@ class Machine:
             avg_vy = vy
  
         # Gains à ajuster selon ton système
-        Kp = 0.025
+        Kp = 0.018
         Kd = 0.015  # Gain dérivé vitesse
         
         
