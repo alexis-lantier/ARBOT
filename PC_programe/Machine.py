@@ -142,11 +142,10 @@ class Machine:
 
         gain_global =0.3
         # Gains à ajuster selon ton système
-        Kp = 0.03
+        Kp = 0.034
         Kd = 0.023  # Gain dérivé vitesse
         Kd = Kd * gain_global
         Kp = Kp * gain_global
-
 
         # Régulation PD
         theta = -(Kp * ex + Kd * avg_vx)
