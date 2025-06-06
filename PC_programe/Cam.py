@@ -6,7 +6,7 @@ from collections import deque
 
 WIDTH = 640
 HEIGHT = 480
-CAMERA_INDEX = 0
+CAMERA_INDEX = 1
 
 class Cam:
     def __init__(self):
@@ -45,13 +45,14 @@ class Cam:
         #self._cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
         self._cap.set(cv2.CAP_PROP_EXPOSURE, -4)
         self._cap.set(cv2.CAP_PROP_EXPOSURE, -6)
-        self._cap.set(cv2.CAP_PROP_BRIGHTNESS, 300)
-
-        ##plot
+        self._cap.set(cv2.CAP_PROP_BRIGHTNESS, 300)        ##plot
         self._timeIndex = 0
         self._zpositionPlot = [0]
         self._zspeedPlot = [0]
+        self._zaccelerationPlot = [0]
         self._timePlot = [0]
+        self._previous_vitesse_z = 0
+        self._previous_speed_time = None
 
     def get_height(self):
         a= -0.0004
@@ -153,11 +154,21 @@ class Cam:
         # Calcule les vitesses moyennes (lissage)
         avg_vx = sum(self._vx_history) / len(self._vx_history)
         avg_vy = sum(self._vy_history) / len(self._vy_history)
-        avg_vz = sum(self._vz_history) / len(self._vz_history)
-
-        # Mets à jour la vitesse lissée
+        avg_vz = sum(self._vz_history) / len(self._vz_history)        # Mets à jour la vitesse lissée
         self._ballSpeed = Vector(avg_vx, avg_vy, avg_vz)
+        
+        # Calcul de l'accélération Z
+        acceleration_z = 0
+        current_time = time.time()
+        if self._previous_speed_time is not None:
+            delta_t = current_time - self._previous_speed_time
+            if delta_t > 0:
+                acceleration_z = (avg_vz - self._previous_vitesse_z) / delta_t  # mm/s²
+        
+        self._previous_vitesse_z = avg_vz
+        self._previous_speed_time = current_time
         self._previous_position = self._position
+        
         if self._position.GetZvalue() is not None:
             if self._position.GetZvalue() > 350:
                 self._radius = None  # Réinitialise le rayon si la balle est trop haute
@@ -167,6 +178,7 @@ class Cam:
         self._timeIndex += 1
         self._zpositionPlot.append(z)
         self._zspeedPlot.append(vitesse_z)
+        self._zaccelerationPlot.append(acceleration_z)
         
 
     def display(self):

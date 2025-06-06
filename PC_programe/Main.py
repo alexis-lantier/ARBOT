@@ -35,21 +35,37 @@ def main():
         app.Test()
     else:
         app.Run()
-    plt.subplot(2, 1, 1)# y'a un soucis au début trop grands valeurs apres on voit rien enlever les 10 premiers points
-    plt.plot(app._machine._ball._cam._timePlot, app._machine._ball._cam._zpositionPlot, 'b-', label='Position Z')
-    plt.title('Hauteur de la balle en fonction du temps')
-    plt.ylabel('Hauteur (mm)')
-    plt.grid(True)
-    plt.legend()
+    
+    # Affichage des plots après fermeture du programme
+    print("\nGénération des graphiques...")
+    
+    # Création d'une figure avec 3 sous-graphiques
+    plt.figure(figsize=(12, 10))
+    
+    # Sous-graphique 1: Position Z en fonction du temps
+    plt.subplot(3, 1, 1)
+    plt.plot(app._machine._ball._cam._timePlot, app._machine._ball._cam._zpositionPlot, 'b-', label='Position Z', linewidth=2)
+    plt.title('Position verticale de la balle en fonction du temps', fontsize=14, fontweight='bold')
+    plt.ylabel('Hauteur (mm)', fontsize=12)
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=10)
     
     # Sous-graphique 2: Vitesse Z en fonction du temps
-    plt.subplot(2, 1, 2)
-    plt.plot(app._machine._ball._cam._timePlot, app._machine._ball._cam._zspeedPlot, 'r-', label='Vitesse Z')
-    plt.title('Vitesse verticale en fonction du temps')
-    plt.xlabel('Index temporel')
-    plt.ylabel('Vitesse (mm/s)')
-    plt.grid(True)
-    plt.legend()
+    plt.subplot(3, 1, 2)
+    plt.plot(app._machine._ball._cam._timePlot, app._machine._ball._cam._zspeedPlot, 'r-', label='Vitesse Z', linewidth=2)
+    plt.title('Vitesse verticale de la balle en fonction du temps', fontsize=14, fontweight='bold')
+    plt.ylabel('Vitesse (mm/s)', fontsize=12)
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=10)
+    
+    # Sous-graphique 3: Accélération Z en fonction du temps
+    plt.subplot(3, 1, 3)
+    plt.plot(app._machine._ball._cam._timePlot, app._machine._ball._cam._zaccelerationPlot, 'g-', label='Accélération Z', linewidth=2)
+    plt.title('Accélération verticale de la balle en fonction du temps', fontsize=14, fontweight='bold')
+    plt.xlabel('Index temporel', fontsize=12)
+    plt.ylabel('Accélération (mm/s²)', fontsize=12)
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=10)
     
     plt.tight_layout()
     plt.show()
