@@ -21,11 +21,13 @@ class Application:
         #S'assurer d'arriver exactement à la valeur cible
         self._machine._plate.MoveAxisHeigh(target)
         
-    def Regulation(self):                      
-        self._machine._ball.Update()  # Mettre à jour la position de la balle       
-        self._machine.RegulationBounce()
+    def Regulation(self):       
+                    
+        self._machine._ball.Update()  # Mettre à jour la position de la balle   
         self._machine.RegulationCenter()
-
+        self._machine.RegulationBounce()
+        
+        stop_time = time.time()
         if DEBUG:
             print ( f"PHI: {self._machine.GetAnglePhi():.2f}° | TETA: {self._machine.GetAngleTheta():.2f}° ")
 

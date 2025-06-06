@@ -26,7 +26,7 @@ class BallPredictor:
         t1 = (-b + sqrt_disc) / (2 * a)
         t2 = (-b - sqrt_disc) / (2 * a)
         times = [t for t in (t1, t2) if t > 0]
-        return max(times) if times else None
+        return min(times) if times else None
  
     def add_prediction(self, height, velocity):
         now = time.time()
@@ -36,20 +36,22 @@ class BallPredictor:
             self.predictions.append(t_final)
             if len(self.predictions) > 10:
                 self.predictions.pop(0)
-            print(f"Temps de chute: {t_chute:.2f} secondes now : {now:.2f} t_final: {t_final:.2f}")
+            #print(f"Temps de chute: {t_chute:.2f} secondes now : {now:.2f} t_final: {t_final:.2f}")
  
     def get_activation_time(self):
         if not self.predictions:
             return None
         t_f_moyen = sum(self.predictions) / len(self.predictions)
-        print(f"Temps moyen de chute: {t_f_moyen:.2f} secondes")
+        #print(f"Temps moyen de chute: {t_f_moyen- self.offsetmot :.2f} secondes temps actuel: {time.time():.2f}")
         return t_f_moyen - self.offsetmot
+
  
     def should_activate_motor(self):
         if self.activation_done:
             return False
         t_activation = self.get_activation_time()
-        if t_activation and time.time() >= t_activation:
+        # Ajouter une vérification que t_activation n'est pas None
+        if t_activation is not None and time.time() >= t_activation:
             self.activation_done = True
             return True
         return False
@@ -105,27 +107,23 @@ class Machine:
 
         current_time = time.time()
         z = self._ball._cam._position.z
+        zoffset = 0  # Offset pour la hauteur de la balle
+        z=z- zoffset
         
         vz = self._ball._cam._ballSpeed.z
-        if abs(vz) < 20:
-            vz = 0
+
+        if abs(vz) < 50:
+            vz = 0  # Si la vitesse verticale est trop faible, on la considère comme nulle
+        
 
         d = self._ball._cam._radius
         
-        
- 
+
         if vz < 0:
             self._predictor.add_prediction(z, vz)
+            
             if self._bounceAutorised:
-                # Cas 1: La balle est très basse
-                if(0):
-                    if z < 100:
-                        print(f"💥 Rebond forcé ! (Hauteur critique atteinte: {z:.1f}mm)")
-                        self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
-                        self._bounceAutorised = False
-                        self._last_bounce_time = current_time
-                        self._predictor.reset()
-                        return
+             
  
                 # Cas 2: Prédiction basée sur plusieurs hauteurs
                 if(1):
@@ -135,11 +133,11 @@ class Machine:
                             self._bounceAutorised = False
                             self._last_bounce_time = current_time
                             self._predictor.reset()
-                        return
+                            return
  
                 # Cas 3: Détection de secours par diamètre
-                if(0):
-                    if z < 290:
+                if(1):
+                    if z < 300:
                         print("💥 Rebond déclenché par diamètre !")
                         self.RegulationCenter()
                         self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
@@ -147,8 +145,6 @@ class Machine:
                         self._last_bounce_time = current_time
                         self._predictor.reset()
                         return
-
-        
         # Réautorisation du rebond si la balle est assez haute
         if z > 100 and not self._bounceAutorised:
             self._bounceAutorised = True
@@ -197,9 +193,9 @@ class Machine:
             avg_vy = vy
  
         # Gains à ajuster selon ton système
-        Kp = 0.05
-        Kd = 0.05  # Gain dérivé vitesse
-        Kd=0
+        Kp = 0.025
+        Kd = 0.015  # Gain dérivé vitesse
+        
         
  
         # Régulation PD
@@ -210,7 +206,7 @@ class Machine:
         theta = max(-angle_max, min(angle_max, theta))
         phi   = max(-angle_max, min(angle_max, phi))
         return theta, phi
-    
+
 
 
 
