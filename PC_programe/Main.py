@@ -42,6 +42,12 @@ def main():
     # Affichage des plots après fermeture du programme
     print("\nGénération des graphiques...")
 
+    # enlever les 10 premières valeurs pour éviter les pics initiaux
+    app._machine._ball._cam._timePlot = app._machine._ball._cam._timePlot[10:]
+    app._machine._ball._cam._zpositionPlot = app._machine._ball._cam._zpositionPlot[10:]
+    app._machine._ball._cam._zspeedPlot = app._machine._ball._cam._zspeedPlot[10:]
+    app._machine._ball._cam._zaccelerationPlot = app._machine._ball._cam._zaccelerationPlot[10:]
+
     # Création d'une figure avec 3 sous-graphiques
     plt.figure(figsize=(12, 10))
     # Sous-graphique 1: Position Z en fonction du temps
@@ -103,7 +109,7 @@ def main():
     plt.legend(fontsize=10)
 
     plt.tight_layout()
-    plt.show()
+    #plt.show()
 
 
 if __name__ == "__main__":

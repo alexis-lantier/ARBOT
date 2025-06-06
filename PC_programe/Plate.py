@@ -159,7 +159,7 @@ class Plate:
 
     def MakeOneBounce(self, virtualAngleTheta, virtualAnglePhi):
 
-        bounce_height = 60
+        bounce_height = 70
 
         self.MoveAxisPhi(virtualAnglePhi)
         self.MoveAxisTheta(virtualAngleTheta)
@@ -172,7 +172,6 @@ class Plate:
             self._axisB._motor._angle,
             self._axisC._motor._angle,
         )
-        time.sleep(0.1)  # Attendre un peu pour le rebond
 
         # redescendre les axes a la position initiale
         self._axisA.move(self._axisA._height - bounce_height)

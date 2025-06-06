@@ -43,7 +43,7 @@ class Application:
             daemon=True,
         )
         display_thread.start()
-        self.Ramp(50.9)
+        self.Ramp(40.9)
         while True:
             self.Regulation()
 

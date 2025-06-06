@@ -6,10 +6,11 @@ from collections import deque
 
 WIDTH = 640
 HEIGHT = 480
-CAMERA_INDEX = 1
+CAMERA_INDEX = 0
 
 
 class Cam:
+    
     def __init__(self):
         """Initialise la caméra et les paramètres nécessaires."""
         self._previous_position = Vector(None, None, None)
@@ -17,6 +18,7 @@ class Cam:
         self._ballSpeed = Vector()
         self._previous_time = None
         self._radius = None
+        
 
         # Initialisation de la caméra
         self._cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
@@ -28,14 +30,15 @@ class Cam:
         self._cap.set(3, WIDTH)
         self._cap.set(4, HEIGHT)
 
-        # Plage de couleurs pour détecter la balle orange
-        self._lower_orange = np.array([5, 80, 80])
-        self._upper_orange = np.array([25, 255, 255])
+        # Ajustement de la plage HSV pour détecter la balle orange
+        self._lower_orange = np.array([19, 117, 28])  # H-5, S-30, V-30
+        self._upper_orange = np.array([30, 255, 255])  # H+5, S max, V max
+
 
         # Historiques pour lisser les vitesses
-        self._vx_history = deque([0] * 4, maxlen=4)
-        self._vy_history = deque([0] * 4, maxlen=4)
-        self._vz_history = deque([0] * 4, maxlen=4)
+        self._vx_history = deque([0] * 1, maxlen=1)
+        self._vy_history = deque([0] * 1, maxlen=1)
+        self._vz_history = deque([0] * 1, maxlen=1)
 
         self._cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # Désactive l'autofocus
         time.sleep(0.1)
@@ -53,6 +56,7 @@ class Cam:
         self._timePlot = [0]
         self._previous_vitesse_z = 0
         self._previous_speed_time = None
+        #self.calibrate_color()  # Lancer la calibration de couleur
 
     def get_height(self):
         a = -0.0004
@@ -171,7 +175,7 @@ class Cam:
         self._previous_position = self._position
 
         if self._position.GetZvalue() is not None:
-            if self._position.GetZvalue() > 350:
+            if self._position.GetZvalue() > 400:
                 self._radius = None  # Réinitialise le rayon si la balle est trop haute
 
         # Mise à jour des plots
@@ -258,3 +262,61 @@ class Cam:
             self.display()
 
             # v2
+    def calibrate_color(self):
+        """Permet de sélectionner interactivement la plage de couleur de la balle."""
+        print("Calibration de couleur: cliquez sur la balle pour définir sa couleur.")
+        print("Appuyez sur 'q' pour terminer la calibration.")
+        
+        points = []
+        hsv_values = []
+        
+        def mouse_callback(event, x, y, flags, param):
+            if event == cv2.EVENT_LBUTTONDOWN:
+                # Récupère la couleur HSV du point cliqué
+                hsv_frame = cv2.cvtColor(param["frame"], cv2.COLOR_BGR2HSV)
+                hsv_value = hsv_frame[y, x]
+                points.append((x, y))
+                hsv_values.append(hsv_value)
+                print(f"Point {len(points)}: HSV = {hsv_value}")
+        
+        cv2.namedWindow("Calibration")
+        
+        while True:
+            ret, frame = self._cap.read()
+            if not ret:
+                break
+                
+            frame = cv2.resize(frame, (WIDTH, HEIGHT))
+            
+            # Dessine les points sélectionnés
+            for point in points:
+                cv2.circle(frame, point, 5, (0, 255, 0), -1)
+                
+            cv2.setMouseCallback("Calibration", mouse_callback, {"frame": frame})
+            cv2.imshow("Calibration", frame)
+            
+            key = cv2.waitKey(1)
+            if key == ord('q') or key == 27:  # 'q' ou ESC
+                break
+        
+        cv2.destroyAllWindows()
+        
+        if hsv_values:
+            # Calcule les valeurs min et max avec une marge
+            h_values = [value[0] for value in hsv_values]
+            s_values = [value[1] for value in hsv_values]
+            v_values = [value[2] for value in hsv_values]
+            
+            h_min = max(0, min(h_values) - 5)
+            h_max = min(180, max(h_values) + 5)
+            s_min = max(0, min(s_values) - 30)
+            v_min = max(0, min(v_values) - 30)
+            
+            self._lower_orange = np.array([h_min, s_min, v_min])
+            self._upper_orange = np.array([h_max, 255, 255])
+            
+            print(f"Nouvelle plage HSV: Lower={self._lower_orange}, Upper={self._upper_orange}")
+            return True
+    
+        print("Aucun point sélectionné.")
+        return False
