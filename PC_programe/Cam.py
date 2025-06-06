@@ -47,6 +47,11 @@ class Cam:
         self._cap.set(cv2.CAP_PROP_EXPOSURE, -6)
         self._cap.set(cv2.CAP_PROP_BRIGHTNESS, 300)
 
+        ##plot
+        self._timeIndex = 0
+        self._zpositionPlot = [0]
+        self._zspeedPlot = [0]
+        self._timePlot = [0]
 
     def get_height(self):
         a= -0.0004
@@ -156,11 +161,16 @@ class Cam:
         if self._position.GetZvalue() is not None:
             if self._position.GetZvalue() > 350:
                 self._radius = None  # Réinitialise le rayon si la balle est trop haute
-        
+
+        # Mise à jour des plots
+        self._timePlot.append(self._timeIndex)
+        self._timeIndex += 1
+        self._zpositionPlot.append(z)
+        self._zspeedPlot.append(vitesse_z)
         
 
     def display(self):
-        
+
         """Affiche la vidéo avec les informations de suivi de la balle."""
         ret, frame = self._cap.read()
         if not ret or frame is None:

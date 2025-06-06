@@ -2,6 +2,7 @@ from Application import Application
 from Cam import Cam
 import time 
 import serial.tools.list_ports
+from matplotlib import pyplot as plt
 
 DEBUG = False
 
@@ -34,7 +35,25 @@ def main():
         app.Test()
     else:
         app.Run()
- 
+    plt.subplot(2, 1, 1)
+    plt.plot(app._machine._ball._cam._timePlot, app._machine._ball._cam._zpositionPlot, 'b-', label='Position Z')
+    plt.title('Hauteur de la balle en fonction du temps')
+    plt.ylabel('Hauteur (mm)')
+    plt.grid(True)
+    plt.legend()
+    
+    # Sous-graphique 2: Vitesse Z en fonction du temps
+    plt.subplot(2, 1, 2)
+    plt.plot(app._machine._ball._cam._timePlot, app._machine._ball._cam._zspeedPlot, 'r-', label='Vitesse Z')
+    plt.title('Vitesse verticale en fonction du temps')
+    plt.xlabel('Index temporel')
+    plt.ylabel('Vitesse (mm/s)')
+    plt.grid(True)
+    plt.legend()
+    
+    plt.tight_layout()
+    plt.show()
+
 
 if __name__ == "__main__":
     main()
