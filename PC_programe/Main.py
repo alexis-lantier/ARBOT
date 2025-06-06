@@ -47,6 +47,8 @@ def main():
     app._machine._ball._cam._zpositionPlot = app._machine._ball._cam._zpositionPlot[10:]
     app._machine._ball._cam._zspeedPlot = app._machine._ball._cam._zspeedPlot[10:]
     app._machine._ball._cam._zaccelerationPlot = app._machine._ball._cam._zaccelerationPlot[10:]
+    # mettre le temps à 0 
+    app._machine._ball._cam._timePlot = [t - app._machine._ball._cam._timePlot[0] for t in app._machine._ball._cam._timePlot]
 
     # Création d'une figure avec 3 sous-graphiques
     plt.figure(figsize=(12, 10))
@@ -103,13 +105,13 @@ def main():
         fontsize=14,
         fontweight="bold",
     )
-    plt.xlabel("Index temporel", fontsize=12)
+    plt.xlabel("Secondes", fontsize=12)
     plt.ylabel("Accélération (mm/s²)", fontsize=12)
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=10)
 
     plt.tight_layout()
-    #plt.show()
+    plt.show()
 
 
 if __name__ == "__main__":

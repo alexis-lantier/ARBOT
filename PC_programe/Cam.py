@@ -34,7 +34,6 @@ class Cam:
         self._lower_orange = np.array([19, 117, 28])  # H-5, S-30, V-30
         self._upper_orange = np.array([30, 255, 255])  # H+5, S max, V max
 
-
         # Historiques pour lisser les vitesses
         self._vx_history = deque([0] * 1, maxlen=1)
         self._vy_history = deque([0] * 1, maxlen=1)
@@ -49,7 +48,6 @@ class Cam:
         self._cap.set(cv2.CAP_PROP_EXPOSURE, -4)
         self._cap.set(cv2.CAP_PROP_EXPOSURE, -6)
         self._cap.set(cv2.CAP_PROP_BRIGHTNESS, 300)  ##plot
-        self._timeIndex = 0
         self._zpositionPlot = [0]
         self._zspeedPlot = [0]
         self._zaccelerationPlot = [0]
@@ -179,8 +177,7 @@ class Cam:
                 self._radius = None  # Réinitialise le rayon si la balle est trop haute
 
         # Mise à jour des plots
-        self._timePlot.append(self._timeIndex)
-        self._timeIndex += 1
+        self._timePlot.append(time.time())
         self._zpositionPlot.append(z)
         self._zspeedPlot.append(vitesse_z)
         self._zaccelerationPlot.append(acceleration_z)
