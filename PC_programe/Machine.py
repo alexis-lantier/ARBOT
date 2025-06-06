@@ -6,9 +6,8 @@ import time
 
 #########################################################
 
-
 class BallPredictor:
-    def __init__(self, offsetmot=0.1):
+    def __init__(self, offsetmot=0.09):
         self.g = 9810  # mm/s²
         self.offsetmot = offsetmot
         self.predictions = []
@@ -31,35 +30,43 @@ class BallPredictor:
 
     def add_prediction(self, height, velocity):
         now = time.time()
-        t_chute = self.calculate_fall_time(height, velocity)
-        if t_chute is not None:
+
+        # Fake hauteur pour anticipation moteur
+        #fake_offset = min(400, abs(velocity) * 0.03)  # mm
+        fake_offset = 1  # mm (expérimentalement à ajuster)
+        height_fake = max(1, height - fake_offset)
+
+        t_chute = self.calculate_fall_time(height_fake, velocity)
+
+        if t_chute is not None and 0.05 < t_chute < 1.0:
             t_final = now + t_chute
             self.predictions.append(t_final)
-            if len(self.predictions) > 10:
-                self.predictions.pop(0)
-            # print(f"Temps de chute: {t_chute:.2f} secondes now : {now:.2f} t_final: {t_final:.2f}")
+
+        # Nettoyer les vieilles prédictions (temps déjà dépassés)
+        self.predictions = [t for t in self.predictions if t > now]
 
     def get_activation_time(self):
         if not self.predictions:
             return None
-        t_f_moyen = sum(self.predictions) / len(self.predictions)
-        # print(f"Temps moyen de chute: {t_f_moyen- self.offsetmot :.2f} secondes temps actuel: {time.time():.2f}")
-        return t_f_moyen - self.offsetmot
+        return sum(self.predictions) / len(self.predictions) - self.offsetmot
 
-    def should_activate_motor(self):
-        if self.activation_done:
+    def should_activate_motor(self, current_velocity):
+        now = time.time()
+        self.predictions = [t for t in self.predictions if t > now]  # nettoyage ici aussi
+
+        if self.activation_done or not self.predictions:
             return False
+
         t_activation = self.get_activation_time()
-        # Ajouter une vérification que t_activation n'est pas None
-        if t_activation is not None and time.time() >= t_activation:
-            self.activation_done = True
-            return True
+        if t_activation is not None and now >= t_activation:
+            if current_velocity < 0:
+                self.activation_done = True
+                return True
         return False
 
     def reset(self):
         self.predictions.clear()
         self.activation_done = False
-
 
 ##################################################################
 
@@ -73,10 +80,10 @@ class Machine:
         self._bounceAutorised = True
         self._last_bounce_time = 0
         self._min_bounce_interval = (
-            0.2  # Intervalle minimum entre les rebonds en secondes
+            0.4  # Intervalle minimum entre les rebonds en secondes
         )
         self._bounce_offset = (
-            0.105  # Temps d'avance pour déclencher le rebond avant l'impact
+            0  # Temps d'avance pour déclencher le rebond avant l'impact
         )
 
         self._virtualAnglePhi = 0
@@ -100,19 +107,17 @@ class Machine:
         self._virtualAngleTheta, self._virtualAnglePhi = self.calculate_angles()
 
     def RegulationBounce(self):
-
         if self._ball._cam._radius is None:
             return
 
         current_time = time.time()
         z = self._ball._cam._position.z
-        zoffset = 50  # Offset pour la hauteur de la balle
+        zoffset = 0
         z = z - zoffset
 
         vz = self._ball._cam._ballSpeed.z
-
         if abs(vz) < 50:
-            vz = 0  # Si la vitesse verticale est trop faible, on la considère comme nulle
+            vz = 0
 
         d = self._ball._cam._radius
 
@@ -120,36 +125,42 @@ class Machine:
             self._predictor.add_prediction(z, vz)
 
             if self._bounceAutorised:
+                # Cas 2 : Prédiction multiple
+                if self._predictor.should_activate_motor(vz):
+                    temps_depuis_dernier_rebond = current_time - self._last_bounce_time
+                    if temps_depuis_dernier_rebond < self._min_bounce_interval:
+                        return  # Trop tôt pour rebondir à nouveau
 
-                # Cas 2: Prédiction basée sur plusieurs hauteurs
-                if 1:
-                    if self._predictor.should_activate_motor():
-                        print(
-                            f"💥 Rebond déclenché par prédiction multiple !{time.time()}"
-                        )
-                        self._plate.MakeOneBounce(
-                            self._virtualAngleTheta, self._virtualAnglePhi
-                        )
-                        self._bounceAutorised = False
-                        self._last_bounce_time = current_time
-                        self._predictor.reset()
-                        return
+                    print(f"💥 Rebond déclenché par prédiction multiple ! {time.time():.3f}")
+                    self._plate.MakeOneBounce(
+                        self._virtualAngleTheta, self._virtualAnglePhi
+                    )
+                    self._bounceAutorised = False
+                    self._last_bounce_time = current_time
+                    self._predictor.reset()
+                    return
 
-                # Cas 3: Détection de secours par diamètre
-                if 1:
-                    if z < 310:
-                        print(f"💥 Rebond déclenché par diamètre !{time.time()}")
-                        self.RegulationCenter()
-                        self._plate.MakeOneBounce(
-                            self._virtualAngleTheta, self._virtualAnglePhi
-                        )
-                        self._bounceAutorised = False
-                        self._last_bounce_time = current_time
-                        self._predictor.reset()
-                        return
-        # Réautorisation du rebond si la balle est assez haute
+                # Cas 3 : Diamètre (secours)
+                if z < 310:
+                    temps_depuis_dernier_rebond = current_time - self._last_bounce_time
+                    if temps_depuis_dernier_rebond < self._min_bounce_interval:
+                        return  # Trop tôt pour rebondir à nouveau
+
+                    print(f"💥 Rebond déclenché par diamètre ! {time.time():.3f}")
+                    self.RegulationCenter()
+                    self._plate.MakeOneBounce(
+                        self._virtualAngleTheta, self._virtualAnglePhi
+                    )
+                    self._bounceAutorised = False
+                    self._last_bounce_time = current_time
+                    self._predictor.reset()
+                    return
+
+        # Réautoriser rebond si balle est remontée
         if z > 40 and not self._bounceAutorised:
             self._bounceAutorised = True
+
+
 
     def calculate_angles(self):
         """

@@ -9,7 +9,7 @@
 #define ENABLE_PIN 36
 
 const float stepAngle = 0.05625;
-const int delay_min = 40;
+const int delay_min = 20;
 const int delay_max = 187.5;
 const int ramp_steps = 200;
 
