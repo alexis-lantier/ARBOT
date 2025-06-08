@@ -10,7 +10,7 @@ CAMERA_INDEX = 0
 
 
 class Cam:
-    
+
     def __init__(self):
         """Initialise la caméra et les paramètres nécessaires."""
         self._previous_position = Vector(None, None, None)
@@ -18,7 +18,6 @@ class Cam:
         self._ballSpeed = Vector()
         self._previous_time = None
         self._radius = None
-        
 
         # Initialisation de la caméra
         self._cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
@@ -54,7 +53,7 @@ class Cam:
         self._timePlot = [0]
         self._previous_vitesse_z = 0
         self._previous_speed_time = None
-        #self.calibrate_color()  # Lancer la calibration de couleur
+        # self.calibrate_color()  # Lancer la calibration de couleur
 
     def get_height(self):
         a = -0.0004
@@ -259,14 +258,15 @@ class Cam:
             self.display()
 
             # v2
+
     def calibrate_color(self):
         """Permet de sélectionner interactivement la plage de couleur de la balle."""
         print("Calibration de couleur: cliquez sur la balle pour définir sa couleur.")
         print("Appuyez sur 'q' pour terminer la calibration.")
-        
+
         points = []
         hsv_values = []
-        
+
         def mouse_callback(event, x, y, flags, param):
             if event == cv2.EVENT_LBUTTONDOWN:
                 # Récupère la couleur HSV du point cliqué
@@ -275,45 +275,47 @@ class Cam:
                 points.append((x, y))
                 hsv_values.append(hsv_value)
                 print(f"Point {len(points)}: HSV = {hsv_value}")
-        
+
         cv2.namedWindow("Calibration")
-        
+
         while True:
             ret, frame = self._cap.read()
             if not ret:
                 break
-                
+
             frame = cv2.resize(frame, (WIDTH, HEIGHT))
-            
+
             # Dessine les points sélectionnés
             for point in points:
                 cv2.circle(frame, point, 5, (0, 255, 0), -1)
-                
+
             cv2.setMouseCallback("Calibration", mouse_callback, {"frame": frame})
             cv2.imshow("Calibration", frame)
-            
+
             key = cv2.waitKey(1)
-            if key == ord('q') or key == 27:  # 'q' ou ESC
+            if key == ord("q") or key == 27:  # 'q' ou ESC
                 break
-        
+
         cv2.destroyAllWindows()
-        
+
         if hsv_values:
             # Calcule les valeurs min et max avec une marge
             h_values = [value[0] for value in hsv_values]
             s_values = [value[1] for value in hsv_values]
             v_values = [value[2] for value in hsv_values]
-            
+
             h_min = max(0, min(h_values) - 5)
             h_max = min(180, max(h_values) + 5)
             s_min = max(0, min(s_values) - 30)
             v_min = max(0, min(v_values) - 30)
-            
+
             self._lower_orange = np.array([h_min, s_min, v_min])
             self._upper_orange = np.array([h_max, 255, 255])
-            
-            print(f"Nouvelle plage HSV: Lower={self._lower_orange}, Upper={self._upper_orange}")
+
+            print(
+                f"Nouvelle plage HSV: Lower={self._lower_orange}, Upper={self._upper_orange}"
+            )
             return True
-    
+
         print("Aucun point sélectionné.")
         return False

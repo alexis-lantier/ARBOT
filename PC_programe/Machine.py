@@ -4,6 +4,7 @@ from Cam import Cam
 import math
 import time
 
+
 #########################################################
 def estimate_time_to_hit(z, vz, g=9810):
     if vz >= 0:
@@ -11,15 +12,15 @@ def estimate_time_to_hit(z, vz, g=9810):
     a = 0.5 * g
     b = -vz
     c = -z
-    delta = b**2 - 4*a*c
+    delta = b**2 - 4 * a * c
     if delta < 0:
         return None
-    t1 = (-b + math.sqrt(delta)) / (2*a)
-    t2 = (-b - math.sqrt(delta)) / (2*a)
+    t1 = (-b + math.sqrt(delta)) / (2 * a)
+    t2 = (-b - math.sqrt(delta)) / (2 * a)
     positive_times = [t for t in (t1, t2) if t > 0]
     if not positive_times:
         return None
-    
+
     # COMPENSER LE DÉLAI MÉCANIQUE
     raw_time = min(positive_times)
     mechanical_delay = 0.15  # 150ms - À AJUSTER
@@ -40,8 +41,6 @@ class Machine:
         self._virtualAnglePhi = 0
         self._virtualAngleTheta = 0
 
-    
-
     def GetAnglePhi(self):
         # Get the angle phi from the Ball object
         return self._plate.GetAnglePhi()
@@ -60,7 +59,7 @@ class Machine:
     def RegulationBounce(self):
         if self._ball._cam._radius is None:
             return
-        
+
         z = self._ball._cam._position.z
         vz = self._ball._cam._ballSpeed.z
 
@@ -76,19 +75,27 @@ class Machine:
             # UTILISER LE MÉCANISME DE REBOND AUTORISÉ
             if t_to_hit and t_to_hit < 0.30 and self._bounceAutorised:
                 if current_time - self._last_bounce_time > min_bounce_interval:
-                    print(f"💥 Rebond déclenché à {current_time:.3f}, t_to_hit = {t_to_hit:.3f}")
-                    self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
+                    print(
+                        f"💥 Rebond déclenché à {current_time:.3f}, t_to_hit = {t_to_hit:.3f}"
+                    )
+                    self._plate.MakeOneBounce(
+                        self._virtualAngleTheta, self._virtualAnglePhi
+                    )
                     self._last_bounce_time = current_time
                     self._bounceAutorised = False  # Désactiver après rebond
-            
+
             if t_to_hit is not None:
-                print(f"[DEBUG] t_to_hit = {t_to_hit:.4f}s | z = {z:.1f} mm | vz = {vz:.1f} mm/s")
-        
+                print(
+                    f"[DEBUG] t_to_hit = {t_to_hit:.4f}s | z = {z:.1f} mm | vz = {vz:.1f} mm/s"
+                )
+
         # Rebond d'urgence si balle très basse
         if z < 40 and vz < -100:
             if current_time - self._last_bounce_time > min_bounce_interval:
                 print(f"🚨 REBOND D'URGENCE à z={z:.1f}mm, vz={vz:.1f}mm/s")
-                self._plate.MakeOneBounce(self._virtualAngleTheta, self._virtualAnglePhi)
+                self._plate.MakeOneBounce(
+                    self._virtualAngleTheta, self._virtualAnglePhi
+                )
                 self._last_bounce_time = current_time
                 return
 
@@ -140,7 +147,7 @@ class Machine:
             avg_vx = vx
             avg_vy = vy
 
-        gain_global =0.3
+        gain_global = 0.3
         # Gains à ajuster selon ton système
         Kp = 0.034
         Kd = 0.023  # Gain dérivé vitesse
